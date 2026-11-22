@@ -358,7 +358,7 @@ target-trc=bt.1886
 
 ---
 
-## 九、HDR 色调修复档位定稿 + ffmpeg 转码换算（2026-11-18 深夜）
+## 九、HDR 色调修复档位定稿（11-18 量化方案，后作废，2026-11-18 深夜）
 
 ### 9.1 最终档位（真直通 PQ 输出下逐档 AHK 实测定稿）
 
@@ -378,31 +378,6 @@ target-trc=bt.1886
 - 回读验证：contrast 1/4/10/17 分别识别为 ToneIndex 1/2/3/4，无 Custom 误判。
 - 编译 publish 0 错 0 警；feature 全套通过（含直通写 contrast=17）；EXE 三处同步，md5 `2078e35fa32f539693eabbe9a3064fc6`（459,990 B）。
 - 注：`stage2_verify.py` 的 baseline 期望表写死出厂默认，但生产 mpv.conf 已被改过（hwdec=auto-copy / contrast=4 / screenshot-format=png），其 5 项失败是"生产配置≠出厂默认"的历史测试设计问题，与本次改动无关（hwdec/截图格式也一起失败可证）。
-
-### 9.2 能不能把这组值拿去 ffmpeg 转码
-
-**不能直接抄数值，必须换算；而且作用对象不同，效果不会 1:1。**
-
-关键：mpv 的 `contrast/brightness` 是 **video equalizer**，范围 `-100..100`、默认 `0`（加法式增益）；ffmpeg 的 libplacebo/eq 是 `1.0` 为默认的**倍数**。mpv 源码 `csputils.c` 的 `mp_csp_copy_equalizer_values` 给出了唯一正确的换算：
-
-```c
-params->brightness = eq->values[BRIGHTNESS] / 100.0;        // mpv 0  → 0.0
-params->contrast   = (eq->values[CONTRAST] + 100) / 100.0;  // mpv 1 → 1.01 ... 17 → 1.17
-params->saturation = (eq->values[SATURATION] + 100) / 100.0;
-```
-
-所以定档值换到 ffmpeg libplacebo：`contrast = 1.01 / 1.04 / 1.10 / 1.17`，`brightness = 0`。本机 ffmpeg（`<ffmpeg目录>`，2026-09-24 nightly）带 `--enable-libplacebo`，滤镜参数齐全（`inverse_tonemapping`、`contrast`、`brightness`、`tonemapping`、`contrast_recovery` 等），语法示例：
-
-```
--vf "libplacebo=inverse_tonemapping=1:contrast=1.17:brightness=0:tonemapping=clip"
-```
-
-**但有三个前提必须清楚**：
-1. **作用阶段不同**：mpv 这套是**显示端实时调整**（gpu-next 在 PQ 域、真直通输出给 HDR 显示器前做的处理）；转码是把效果**烘焙进视频码流**（scene-referred）。数值换算对了，效果也不是逐像素一致——尤其依赖显示器的实际峰值亮度。
-2. **本质是 display-referred 微调**：用户已确认该选项"只能在真 HDR 输出下用、切 HDR 转 SDR 会自动禁用"，它是给特定 HDR 显示器调观感的，烘焙进文件后换显示器/SDR 环境效果会变。
-3. **本机 Vulkan 显存受限**：这台机器跑 ffmpeg libplacebo 滤镜报 `VK_ERROR_OUT_OF_DEVICE_MEMORY`（连 753K 分配都失败，降分辨率也一样），实测这条路当前环境跑不通，换算结论来自 mpv 源码而非本地截图比对。
-
-结论：理论可行、换算如上，但属于"把播放端的显示器微调固化进文件"，非等价替代；且本机显存不足以实测验证。
 
 ---
 
