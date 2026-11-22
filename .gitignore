@@ -44,3 +44,8 @@ config.json
 Thumbs.db
 .DS_Store
 desktop.ini
+
+# 开发现场资料（原目录搬入，未脱敏，不公开）
+/*.md
+!/README.md
+预览/
