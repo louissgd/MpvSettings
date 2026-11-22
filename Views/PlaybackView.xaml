@@ -1,0 +1,125 @@
+<UserControl x:Class="MpvSettings.Views.PlaybackView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:MpvSettings.Controls">
+    <StackPanel>
+
+        <controls:SettingCard Title="播放">
+            <StackPanel>
+                <controls:OptionRow Title="硬件解码" Description="选择硬件解码方式；当前值不在列表里时会显示「自定义」并保留原设置，不会被覆盖">
+                    <ComboBox Style="{StaticResource DarkComboBox}"
+                              ItemsSource="{Binding HwdecOptions}"
+                              SelectedIndex="{Binding HwdecIndex, Mode=TwoWay}"
+                              IsEnabled="{Binding HwdecCustom, Converter={StaticResource NotBool}}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="反交错" Description="对隔行扫描的片源生效">
+                    <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding Deinterlace, Mode=TwoWay}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="单曲循环" Description="与快速设置里的「单曲循环」是同一个开关">
+                    <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding LoopFile, Mode=TwoWay}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="保留播放进度" Description="下次打开同一个文件时从上次的位置继续播放">
+                    <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding SavePosition, Mode=TwoWay}" />
+                </controls:OptionRow>
+            </StackPanel>
+        </controls:SettingCard>
+
+        <controls:SettingCard Title="字幕">
+            <StackPanel>
+                <controls:OptionRow Title="字幕轨优先片源默认轨" Description="优先选片源里标记为默认的字幕轨">
+                    <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding SubsMatchOsLanguage, Mode=TwoWay}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="无默认轨时不抢 forced 轨" Description="片源没有默认字幕轨时，不自动切到强制字幕轨">
+                    <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding SubsFallbackForced, Mode=TwoWay}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="字幕修改后及时重载" Description="用字幕编辑器改盘上的外挂字幕后，播放中自动重读，无需手动切轨或重载文件。改动需重启播放器生效">
+                    <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding SubAutoReload, Mode=TwoWay}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="外挂字幕优先" Description="同名外挂字幕会自动加载并优先于内封字幕，保持播放器默认行为，不额外提供开关。"
+                                    IsNote="True">
+                    <TextBlock Text="已开启 · 默认" FontSize="12" Foreground="{StaticResource WeakTextBrush}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="SRT 默认样式"
+                                    Description="字体 / 颜色 / 字号 / 行间距 / 边距。只作用于 SRT 等纯文本字幕，ASS 特效字幕与 SUP 位图字幕不受影响。">
+                    <Button x:Name="EditSubStyleBtn" Content="打开设置" Style="{StaticResource SmallButton}"
+                            MinWidth="88" Click="EditSubStyle_Click" />
+                </controls:OptionRow>
+            </StackPanel>
+        </controls:SettingCard>
+
+        <controls:SettingCard Title="纯音频封面">
+            <StackPanel>
+                <controls:OptionRow Title="默认显示封面" Description="纯音频文件带内嵌封面时自动显示，不影响正常视频播放。"
+                                    IsNote="True">
+                    <TextBlock Text="已开启 · 默认" FontSize="12" Foreground="{StaticResource WeakTextBrush}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="封面按原始大小显示" Description="封面按原始大小显示，不放大也不缩小；只对纯音频封面生效">
+                    <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding CoverOriginal, Mode=TwoWay}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="封面窗口上限" Description="纯音频封面窗口的最大尺寸，400 × 400 到 1600 × 1600，默认 1200 × 1200">
+                    <controls:ValueSlider Value="{Binding CoverMax, Mode=TwoWay}" Minimum="400" Maximum="1600"
+                                          SmallChange="100" LargeChange="200" TickFrequency="100"
+                                          Format="{}{0:0} × {0:0}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="配置接入状态"
+                                    Description="上面两项需要相关配置就绪才能生效"
+                                    IsNote="True">
+                    <TextBlock Text="{Binding CoverConfStatus}" FontSize="12"
+                               Foreground="{StaticResource WeakTextBrush}" TextWrapping="Wrap"
+                               TextAlignment="Right" MaxWidth="360" />
+                </controls:OptionRow>
+            </StackPanel>
+        </controls:SettingCard>
+
+        <controls:SettingCard Title="无封面音频">
+            <StackPanel>
+                <controls:OptionRow Title="无封面时显示紧凑信息窗" Description="显示时间码、曲目信息与进度条；右上柱形为装饰动画，非真实频谱，格式信息显示在柱形下方">
+                    <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding NoArtUi, Mode=TwoWay}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="窗口尺寸" Description="信息窗固定为 640 × 180，不提供调节"
+                                    IsNote="True">
+                    <TextBlock Text="640 × 180" FontSize="12" Foreground="{StaticResource WeakTextBrush}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="配置接入状态"
+                                    Description="关闭上面的开关后，纯音频将按播放器默认行为处理（不单独开窗口）"
+                                    IsNote="True">
+                    <TextBlock Text="{Binding NoArtConfStatus}" FontSize="12"
+                               Foreground="{StaticResource WeakTextBrush}" TextWrapping="Wrap"
+                               TextAlignment="Right" MaxWidth="360" />
+                </controls:OptionRow>
+            </StackPanel>
+        </controls:SettingCard>
+
+        <controls:SettingCard Title="Alt+4 · 按屏幕缩放">
+            <StackPanel>
+                <controls:OptionRow Title="屏幕比例" Description="按 Alt+4 时，窗口缩放到屏幕可用区域的这个比例（等比、不超出屏幕）。只在按键时生效，不改变双击打开视频时的默认尺寸">
+                    <controls:ValueSlider Value="{Binding FitRatio, Mode=TwoWay}" Minimum="50" Maximum="100"
+                                          SmallChange="1" LargeChange="5" TickFrequency="1"
+                                          Format="{}{0:0}%" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="其它窗口键都按视频分辨率" Description="双击打开视频 = 视频分辨率的 100%；Alt+` / Alt+1 / Alt+2 / Alt+3 = 视频分辨率的 25% / 50% / 100% / 200%。只有 Alt+4 以屏幕为基准"
+                                    IsNote="True" />
+                <controls:OptionRow Title="Alt+4 不生效的情况" Description="纯音频信息窗没有画面；有封面音频走封面大小逻辑（封面只缩不放，撑大窗口只会多黑边），按了只提示"
+                                    IsNote="True">
+                    <TextBlock Text="按 Alt+4 生效" FontSize="12"
+                               Foreground="{StaticResource WeakTextBrush}" />
+                </controls:OptionRow>
+            </StackPanel>
+        </controls:SettingCard>
+
+        <controls:SettingCard Title="播放行为">
+            <StackPanel>
+                <controls:OptionRow Title="允许同时运行多个播放器" Description="关闭时，双击媒体文件送入当前窗口并把它切到前台（最小化时自动恢复）；直接运行 mplayerl.exe 仍可开新窗口">
+                    <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding AllowMultiInstance, Mode=TwoWay}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="只开一个窗口" Description="再打开文件时转交给已开的窗口并切到前台。改动需重启播放器生效"
+                                    IsNote="True">
+                    <TextBlock Text="{Binding ScriptConfStatus}" FontSize="12"
+                               Foreground="{StaticResource WeakTextBrush}" TextWrapping="Wrap"
+                               TextAlignment="Right" MaxWidth="360" />
+                </controls:OptionRow>
+            </StackPanel>
+        </controls:SettingCard>
+
+    </StackPanel>
+</UserControl>

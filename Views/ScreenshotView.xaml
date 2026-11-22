@@ -1,0 +1,57 @@
+<UserControl x:Class="MpvSettings.Views.ScreenshotView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:MpvSettings.Controls">
+    <StackPanel>
+
+        <controls:SettingCard Title="截图">
+            <StackPanel>
+                <controls:OptionRow Title="截图格式" Description="截图保存的图片格式">
+                    <ComboBox Style="{StaticResource DarkComboBox}"
+                              ItemsSource="{Binding ShotFormatOptions}"
+                              SelectedIndex="{Binding ShotFormatIndex, Mode=TwoWay}"
+                              IsEnabled="{Binding ShotFormatCustom, Converter={StaticResource NotBool}}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="截图保存位置" Description="截图保存位置；可填绝对路径，末尾要带斜杠">
+                    <StackPanel Orientation="Horizontal">
+                        <ComboBox Style="{StaticResource DarkComboBox}" MinWidth="150" Margin="0,0,8,0"
+                                  ItemsSource="{Binding ShotDirOptions}"
+                                  SelectedIndex="{Binding ShotDirIndex, Mode=TwoWay}" />
+                        <TextBox Style="{StaticResource DarkTextBox}" Width="180"
+                                 Text="{Binding ShotDirPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 IsEnabled="{Binding ShotDirIsCustom}" />
+                    </StackPanel>
+                </controls:OptionRow>
+                <controls:OptionRow Title="高位深截图" Description="输出 10bit / 16bit 高位深截图，文件会更大">
+                    <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding HighBitDepth, Mode=TwoWay}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="当前窗口截图" Description="Ctrl+s 截当前窗口，会连同字幕与屏幕提示一起截入；一般请用 s 截原始画面"
+                                    IsNote="True" />
+            </StackPanel>
+        </controls:SettingCard>
+
+        <controls:SettingCard Title="动作">
+            <StackPanel>
+                <controls:OptionRow Title="诊断：打开无配置的 MPV"
+                                    Description="不读任何配置文件与脚本启动一个干净的 MPV，用来判断问题出在配置还是程序本体；不影响正在播放的窗口">
+                    <Button Content="打开无配置 MPV" Style="{StaticResource GhostButton}" MinWidth="132"
+                            Click="OpenNoConfig_Click"
+                            ToolTip="用 --no-config 启动，全部设置回到 mpv 出厂默认；关掉这个窗口后其它播放器不受影响" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="配置维护" Description="恢复出厂默认 / 重置本页只改当前显示，不会写入文件；这里的查看按钮都是只读的">
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="恢复默认" Style="{StaticResource GhostButton}" MinWidth="82" Margin="0,0,6,0"
+                                Click="RestoreAll_Click" ToolTip="全部重置：所有页面恢复出厂默认" />
+                        <Button Content="重置本页" Style="{StaticResource GhostButton}" MinWidth="82" Margin="0,0,6,0"
+                                Click="ResetScreenshot_Click" ToolTip="只把截图页恢复出厂默认" />
+                        <Button Content="mpv.conf" Style="{StaticResource GhostButton}" MinWidth="82" Margin="0,0,6,0"
+                                Click="OpenMpvConf_Click" ToolTip="用系统默认程序查看当前配置（只读）" />
+                        <Button Content="配置目录" Style="{StaticResource GhostButton}" MinWidth="82"
+                                Click="OpenConfigDir_Click" ToolTip="在资源管理器中打开配置文件夹" />
+                    </StackPanel>
+                </controls:OptionRow>
+            </StackPanel>
+        </controls:SettingCard>
+
+    </StackPanel>
+</UserControl>

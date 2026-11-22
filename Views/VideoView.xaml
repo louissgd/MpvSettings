@@ -1,0 +1,93 @@
+<UserControl x:Class="MpvSettings.Views.VideoView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:MpvSettings.Controls">
+    <StackPanel>
+
+        <controls:SettingCard Title="HDR 与色调映射">
+            <StackPanel>
+                <controls:OptionRow Title="HDR 模式" Description="直通显示器：系统 HDR 常开时原样输出；SDR 桌面下只在播放 HDR 片源时自动开启系统 HDR，播完关回。SDR 片源不会触发切换。当前组合不在预设里时显示「自定义」">
+                    <ComboBox Style="{StaticResource DarkComboBox}"
+                              ItemsSource="{Binding HdrModeOptions}"
+                              SelectedIndex="{Binding HdrModeIndex, Mode=TwoWay}"
+                              IsEnabled="{Binding HdrModeCustom, Converter={StaticResource NotBool}}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="色调增强档位" Description="三档色调增强预设（0.6/0.8/1.0），在峰值 2000nits / DisplayHDR 1400 显示器上人眼实测标定，支持杜比视界Profile4、5、7、8 (其他Profile未测试)；HDR 转 SDR 时本项自动置灰并关闭（两者互斥）；当前组合不在预设里时显示「自定义」，原设置不会被覆盖">
+                    <ComboBox Style="{StaticResource DarkComboBox}"
+                              ItemsSource="{Binding ToneOptions}"
+                              SelectedIndex="{Binding ToneIndex, Mode=TwoWay}"
+                              IsEnabled="{Binding ToneInteractive}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="视频输出范围" Description="full = 电脑显示器的 0–255，limited = 电视的 16–235">
+                    <ComboBox Style="{StaticResource DarkComboBox}"
+                              ItemsSource="{Binding VideoLevelsOptions}"
+                              SelectedIndex="{Binding VideoLevelsIndex, Mode=TwoWay}"
+                              IsEnabled="{Binding VideoLevelsCustom, Converter={StaticResource NotBool}}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="仅全屏时切换系统 HDR" Description="只在全屏播放时才切换系统的 HDR 状态">
+                    <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding OnlyFullscreen, Mode=TwoWay}" />
+                </controls:OptionRow>
+            </StackPanel>
+        </controls:SettingCard>
+
+        <controls:SettingCard Title="NVIDIA RTX 视频增强">
+            <StackPanel>
+                <controls:OptionRow Title="RTX 超分辨率（VSR）" Description="默认打开。低分辨率片源由 NVIDIA 驱动做 AI 放大；超过下方上限、或画面以 100% / 更小尺寸显示（无放大）时自动跳过——与 MPC Video Renderer 策略一致：放大窗口才生效，NV App 里「超分辨率」指示灯才会亮。需 RTX 20 系以上显卡并在 NVIDIA App 里开启「超分辨率」。改动需重启播放器">
+                    <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding RtxVsr, Mode=TwoWay}"
+                              IsEnabled="{Binding RtxVsrInteractive}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="VSR 启用上限" Description="只有片源分辨率不超过所选档位才启用超分（长边/短边分别判断，横竖屏通用）。档位阈值与 MPC Video Renderer 一致；1080p 档的上限是 2048×1088">
+                    <ComboBox Style="{StaticResource DarkComboBox}"
+                              ItemsSource="{Binding RtxVsrLimitOptions}"
+                              SelectedIndex="{Binding RtxVsrLimitIndex, Mode=TwoWay}"
+                              IsEnabled="{Binding RtxVsrLimitInteractive}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="RTX Video HDR（SDR→HDR）" Description="默认打开。NVIDIA 驱动只对 SDR 片源生效，HDR 片源一律跳过，可放心开；画质参数（峰值亮度/中灰/对比度）在 NVIDIA App 里调。必须先在 Windows 打开 HDR，且 NVIDIA App 视频页的 RTX Video HDR 总开关为开，否则自动跳过。改动需重启播放器">
+                    <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding RtxHdr, Mode=TwoWay}"
+                              IsEnabled="{Binding RtxHdrInteractive}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="RTX HDR 峰值亮度" Description="要与 NVIDIA App → RTX Video HDR → 峰值亮度(nits) 填同一个值；mpv 默认按 1000 猜，不一致时高光会偏暗或偏亮">
+                    <ComboBox Style="{StaticResource DarkComboBox}"
+                              ItemsSource="{Binding RtxHdrPeakOptions}"
+                              SelectedIndex="{Binding RtxHdrPeakIndex, Mode=TwoWay}"
+                              IsEnabled="{Binding RtxHdrPeakInteractive}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="超分辨率 · 当前状态" Description="{Binding RtxVsrStatusText}" IsNote="True" />
+                <controls:OptionRow Title="RTX Video HDR · 当前状态" Description="{Binding RtxHdrStatusText}" IsNote="True" />
+                <controls:OptionRow Title="NVIDIA App / Windows 检测值" Description="{Binding NvidiaAppStateText}"
+                                    IsNote="True" />
+                <controls:OptionRow Title="运行前提" Description="硬件解码不限（实测 d3d11va / auto-copy / 软解均可）；静态前提（NVIDIA App 总开关 + 硬件支持）不满足时开关置灰并写入 no。Windows HDR 是动态状态（Win+Alt+B）：关时只置灰不写 no，开了即刻生效。VSR 阈值与 MPC Video Renderer 一致"
+                                    IsNote="True" />
+                <controls:OptionRow Title="已知问题 · 等上游修（2026-11-21）"
+                                    Description="播 SDR 片时 RTX HDR 偶发崩溃（截图时更易触发）：根因是 d3d11vpp 动态挂载 nvidia-true-hdr 的空指针，非本程序问题；hint=yes/auto/no 在 HDR 挂上时崩溃率无差别，改 hint 无法规避。RTX HDR 保留、接受偶发，等 mpv 上游修复（issue #17800）。播放约 2 秒后才变亮是在等输出色彩协商，MPCVR 为渲染器内建、无此延迟"
+                                    IsNote="True" />
+            </StackPanel>
+        </controls:SettingCard>
+
+        <controls:SettingCard Title="窗口">
+            <StackPanel>
+                <controls:OptionRow Title="拖动边框时锁住窗口比例" Description="不勾（默认）：窗口可随意拉伸，画面始终保持视频比例并补黑边；勾上：窗口被强制锁成视频比例，不会出现黑边">
+                    <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding KeepWindowAspect, Mode=TwoWay}" />
+                </controls:OptionRow>
+            </StackPanel>
+        </controls:SettingCard>
+
+        <controls:SettingCard Title="渲染与维护">
+            <StackPanel>
+                <!-- 副标题由 RefreshCache() 按 cache 目录实况填，别在 XAML 里写死 -->
+                <controls:OptionRow x:Name="CacheRow" Title="着色器缓存"
+                                    Description="读取中…">
+                    <Button x:Name="ClearCacheBtn" Content="清理缓存" Style="{StaticResource GhostButton}"
+                            IsEnabled="False" Click="ClearCache_Click" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="渲染后端" Description="渲染方式固定为 gpu-next + d3d11，不提供更改"
+                                    IsNote="True">
+                    <TextBlock Text="gpu-next · d3d11" FontSize="12" Foreground="{StaticResource WeakTextBrush}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="F5 色调增强 A/B 对比" Description="播放时按 F5 可以在「当前档位」和「原片」之间对比"
+                                    IsNote="True" />
+            </StackPanel>
+        </controls:SettingCard>
+
+    </StackPanel>
+</UserControl>

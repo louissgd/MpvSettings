@@ -1,0 +1,125 @@
+<Window x:Class="MpvSettings.ApplyResultWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Title="写入结果" Icon="pack://application:,,,/Assets/MpvSettings.ico"
+        Height="560" Width="620" MinHeight="440" MinWidth="540"
+        WindowStyle="None" ResizeMode="NoResize"
+        SourceInitialized="Window_SourceInitialized"
+        Background="{StaticResource AppBrush}"
+        FontFamily="Segoe UI, Microsoft YaHei"
+        WindowStartupLocation="CenterOwner">
+
+    <!-- 同主窗口：去掉 WPF 默认保留的系统边框细条 -->
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="0" ResizeBorderThickness="0"
+                            GlassFrameThickness="0" CornerRadius="0"
+                            UseAeroCaptionButtons="False" />
+    </shell:WindowChrome.WindowChrome>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="34" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="66" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="{StaticResource SidebarBrush}"
+                MouseLeftButtonDown="TitleBar_MouseDown">
+            <Grid>
+                <TextBlock Text="写入结果" FontSize="13" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" Margin="14,0,0,0" />
+                <Button Content="✕" HorizontalAlignment="Right" Width="44" Height="34"
+                        FontSize="14" Foreground="{StaticResource WeakTextBrush}"
+                        Background="Transparent" BorderThickness="0" Cursor="Hand"
+                        Click="Close_Click" />
+            </Grid>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="24,16,24,8">
+            <StackPanel>
+                <TextBlock x:Name="Headline" Text="写入完成" FontSize="21" FontWeight="Bold"
+                           Foreground="{StaticResource TextBrush}" />
+                <TextBlock x:Name="Summary" Text="" FontSize="13"
+                           Foreground="{StaticResource SubTextBrush}" Margin="0,6,0,0" TextWrapping="Wrap" />
+
+                <!-- 后续阶段的改动放在首屏，避免用户误以为封面 / 音效已经生效 -->
+                <Border x:Name="DeferredBanner" Visibility="Collapsed" Margin="0,12,0,0"
+                        Background="{StaticResource WarnBgBrush}" BorderBrush="{StaticResource WarnBorderBrush}" BorderThickness="1"
+                        CornerRadius="6" Padding="12,9">
+                    <StackPanel>
+                        <TextBlock x:Name="DeferredBannerTitle" Text="" FontSize="12" FontWeight="SemiBold"
+                                   Foreground="{StaticResource WarnBrush}" TextWrapping="Wrap" />
+                        <TextBlock x:Name="DeferredBannerBody" Text="" FontSize="11"
+                                   Foreground="{StaticResource WarnTextBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="写入明细" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" Margin="0,16,0,6" />
+                <Border Background="{StaticResource InputBrush}" BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="6" Padding="12,8">
+                    <ScrollViewer MaxHeight="180" VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl x:Name="DetailList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" FontSize="12" Foreground="{StaticResource SubTextBrush}"
+                                               Margin="0,3" TextWrapping="Wrap" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Border>
+
+                <StackPanel x:Name="WarningSection" Margin="0,14,0,0">
+                    <TextBlock Text="跳过 / 提示" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource WarnBrush}" Margin="0,0,0,6" />
+                    <ItemsControl x:Name="WarningList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" FontSize="12" Foreground="{StaticResource SubTextBrush}"
+                                           Margin="0,3" TextWrapping="Wrap" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <StackPanel x:Name="DeferredSection" Margin="0,14,0,0">
+                    <TextBlock Text="本次未写入" FontSize="13" FontWeight="SemiBold"
+                               Foreground="{StaticResource WeakTextBrush}" Margin="0,0,0,6" />
+                    <ItemsControl x:Name="DeferredList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" FontSize="12" Foreground="{StaticResource WeakTextBrush}"
+                                           Margin="0,3" TextWrapping="Wrap" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <StackPanel x:Name="BlockerSection" Margin="0,14,0,0">
+                    <TextBlock Text="阻止写入" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource DangerBrush}" Margin="0,0,0,6" />
+                    <ItemsControl x:Name="BlockerList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" FontSize="12" Foreground="{StaticResource DangerBrush}"
+                                           Margin="0,3" TextWrapping="Wrap" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="2" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0"
+                Background="{StaticResource SidebarBrush}">
+            <Grid Margin="24,0,24,0">
+                <TextBlock x:Name="FooterHint"
+                           Text="注册表音效参数（Bass / Treble / Drive / Preset / Enabled）已即时生效；af 与其它配置项需重启播放器。本窗口不会关闭播放器。"
+                           FontSize="11" Foreground="{StaticResource WeakTextBrush}"
+                           VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="420" HorizontalAlignment="Left" />
+                <Button x:Name="FooterButton" Content="关闭" Style="{StaticResource PrimaryButton}" MinWidth="88"
+                        HorizontalAlignment="Right" VerticalAlignment="Center" Click="Close_Click" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

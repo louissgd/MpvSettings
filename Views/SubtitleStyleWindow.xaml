@@ -1,0 +1,169 @@
+<Window x:Class="MpvSettings.Views.SubtitleStyleWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        xmlns:controls="clr-namespace:MpvSettings.Controls"
+        Title="SRT 默认样式" Icon="pack://application:,,,/Assets/MpvSettings.ico"
+        Width="560" Height="720" MinWidth="480" MinHeight="560"
+        WindowStyle="None" ResizeMode="CanResize"
+        SourceInitialized="Window_SourceInitialized"
+        Background="{StaticResource AppBrush}"
+        FontFamily="Segoe UI, Microsoft YaHei"
+        WindowStartupLocation="CenterOwner">
+
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="0" ResizeBorderThickness="6"
+                            GlassFrameThickness="0" CornerRadius="0"
+                            UseAeroCaptionButtons="False" />
+    </shell:WindowChrome.WindowChrome>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="34" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="62" />
+        </Grid.RowDefinitions>
+
+        <!-- 自绘标题栏 -->
+        <Border Grid.Row="0" Background="{StaticResource SidebarBrush}"
+                MouseLeftButtonDown="TitleBar_MouseDown">
+            <Grid>
+                <TextBlock Text="SRT 默认样式" FontSize="13" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" Margin="14,0,0,0" />
+                <Button Content="✕" HorizontalAlignment="Right" Width="44" Height="34"
+                        FontSize="14" Foreground="{StaticResource WeakTextBrush}"
+                        Background="Transparent" BorderThickness="0" Cursor="Hand"
+                        Click="Cancel_Click" />
+            </Grid>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="20,16,20,20">
+
+                <!-- 范围说明 -->
+                <Border Background="{StaticResource InputBrush}" BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="6" Padding="12,10">
+                    <StackPanel>
+                        <TextBlock Text="作用范围" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Margin="0,6,0,0" FontSize="12" Foreground="{StaticResource SubTextBrush}" TextWrapping="Wrap"
+                                   Text="这里只改 SRT 等纯文本字幕。带特效的 ASS/SSA 字幕按字幕作者参数显示，SUP/PGS 位图字幕完全不受影响。" />
+                    </StackPanel>
+                </Border>
+
+                <!-- 保护开关 -->
+                <controls:SettingCard Title="字幕类型保护" Margin="0,14,0,0">
+                    <StackPanel>
+                        <controls:OptionRow Title="保护 ASS 特效字幕作者样式"
+                                            Description="开启后写入 sub-ass-override=no：ASS/SSA 完全按作者样式，SRT 照常用下面的设置。关闭则 mpv 会用统一样式覆盖 ASS（不推荐）。">
+                            <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding SubProtectAss, Mode=TwoWay}" />
+                        </controls:OptionRow>
+                    </StackPanel>
+                </controls:SettingCard>
+
+                <!-- 字体 -->
+                <controls:SettingCard Title="字体" Margin="0,14,0,0">
+                    <StackPanel>
+                        <controls:OptionRow Title="字体名称" Description="SRT 使用的字体，点「选择…」从系统字体对话框里挑，避免手输 mpv 不认的名字。留空回落到微软雅黑。">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBox x:Name="FontBox" Width="150" IsReadOnly="True" Cursor="Arrow"
+                                         Text="{Binding SubFont, Mode=OneWay}"
+                                         Height="26" VerticalContentAlignment="Center" Padding="6,0"
+                                         Background="{StaticResource InputBrush}" Foreground="{StaticResource TextBrush}"
+                                         BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" />
+                                <Button Content="选择…" Style="{StaticResource GhostButton}" MinWidth="0" Width="62"
+                                        Height="26" FontSize="12" Margin="8,0,0,0" Click="PickFont_Click"
+                                        ToolTip="打开系统字体对话框：字体名、字形(粗体/斜体)、大小都会应用；大小按 ASS 1080p 点数记，自动换算到 mpv 的 720p 基准；字符集已隐藏(mpv 不支持)" />
+                            </StackPanel>
+                        </controls:OptionRow>
+                        <controls:OptionRow Title="字号与字形" Description="字形(常规/粗体/倾斜/粗倾斜)直接生效。大小填 ASS 风格点数(脚本 1080p 基准)，自动换算到 mpv 的 720p 字号：72点→48、78点→52；字符集中文 GB2312 在对话框里隐藏(mpv 无此选项)。下方滑杆可微调。"
+                                            IsNote="True">
+                            <TextBlock Text="对话框设置" FontSize="12" Foreground="{StaticResource WeakTextBrush}" />
+                        </controls:OptionRow>
+                        <controls:OptionRow Title="字体颜色" Description="点左侧色块打开系统调色板直接选；右侧文本框可手输 #AARRGGBB（AA=透明度）。调色板不含透明度，选色后保留原 AA。">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border x:Name="ColorPreview" Width="26" Height="26" CornerRadius="4"
+                                        Background="#FFFFFFFF" BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1" Margin="0,0,8,0" Cursor="Hand"
+                                        ToolTip="点击打开系统颜色选择器"
+                                        MouseLeftButtonUp="ColorPreview_Click" />
+                                <TextBox x:Name="ColorBox" Width="130" Height="26" VerticalContentAlignment="Center"
+                                         Padding="6,0" Text="{Binding SubColor, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         TextChanged="ColorBox_TextChanged"
+                                         Background="{StaticResource InputBrush}" Foreground="{StaticResource TextBrush}"
+                                         BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" />
+                            </StackPanel>
+                        </controls:OptionRow>
+                        <controls:OptionRow Title="加粗" Description="SRT 文字加粗显示。">
+                            <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding SubBold, Mode=TwoWay}" />
+                        </controls:OptionRow>
+                    </StackPanel>
+                </controls:SettingCard>
+
+                <!-- 尺寸与间距 -->
+                <controls:SettingCard Title="尺寸与间距" Margin="0,14,0,0">
+                    <StackPanel>
+                        <controls:OptionRow Title="字号" Description="720p 窗口下的缩放像素值。微软雅黑建议 48，华文楷体建议 52（各按实测）。实际大小随窗口高度缩放。">
+                            <controls:ValueSlider Value="{Binding SubFontSize, Mode=TwoWay}"
+                                                  IsEditable="True"
+                                                  Minimum="8" Maximum="120" SmallChange="1" LargeChange="10" TickFrequency="1"
+                                                  Format="{}{0}" Width="200" />
+                        </controls:OptionRow>
+                        <controls:OptionRow Title="行间距" Description="双行字幕的行距。负值收紧（解决双行太松散），0 为默认，建议 -1 到 -3。">
+                            <controls:ValueSlider Value="{Binding SubLineSpacing, Mode=TwoWay}"
+                                                  IsEditable="True"
+                                                  Minimum="-10" Maximum="10" SmallChange="0.5" LargeChange="2" TickFrequency="0.5"
+                                                  Format="{}{0:0.0}" Width="200" />
+                        </controls:OptionRow>
+                        <controls:OptionRow Title="描边宽度" Description="文字轮廓粗细，默认 1（ASS 常用值），0 为无描边。">
+                            <controls:ValueSlider Value="{Binding SubOutlineSize, Mode=TwoWay}"
+                                                  IsEditable="True"
+                                                  Minimum="0" Maximum="8" SmallChange="0.05" LargeChange="0.5" TickFrequency="0.05"
+                                                  Format="{}{0:0.00}" Width="200" />
+                        </controls:OptionRow>
+                        <controls:OptionRow Title="阴影偏移" Description="文字阴影偏移量，0 为无阴影，mpv 默认 0。">
+                            <controls:ValueSlider Value="{Binding SubShadowOffset, Mode=TwoWay}"
+                                                  IsEditable="True"
+                                                  Minimum="0" Maximum="10" SmallChange="0.1" LargeChange="1" TickFrequency="0.1"
+                                                  Format="{}{0:0.0}" Width="200" />
+                        </controls:OptionRow>
+                    </StackPanel>
+                </controls:SettingCard>
+
+                <!-- 边距 -->
+                <controls:SettingCard Title="屏幕边距" Margin="0,14,0,0">
+                    <StackPanel>
+                        <controls:OptionRow Title="左右边距" Description="字幕左右安全边距，mpv 默认 19。">
+                            <controls:ValueSlider Value="{Binding SubMarginX, Mode=TwoWay}"
+                                                  IsEditable="True"
+                                                  Minimum="0" Maximum="120" SmallChange="1" LargeChange="10" TickFrequency="1"
+                                                  Format="{}{0}" Width="200" />
+                        </controls:OptionRow>
+                        <controls:OptionRow Title="底部边距" Description="字幕距离画面底部的边距，mpv 默认 34。想让字幕更靠上就加大。">
+                            <controls:ValueSlider Value="{Binding SubMarginY, Mode=TwoWay}"
+                                                  IsEditable="True"
+                                                  Minimum="0" Maximum="200" SmallChange="1" LargeChange="10" TickFrequency="1"
+                                                  Format="{}{0}" Width="200" />
+                        </controls:OptionRow>
+                    </StackPanel>
+                </controls:SettingCard>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- 底部按钮 -->
+        <Border Grid.Row="2" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0"
+                Background="{StaticResource SidebarBrush}">
+            <Grid Margin="20,0">
+                <TextBlock Text="点「完成」立即写入 mpv.conf，无需回主界面再点应用" FontSize="11"
+                           Foreground="{StaticResource WeakTextBrush}" VerticalAlignment="Center"
+                           HorizontalAlignment="Left" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button Content="取消" Style="{StaticResource GhostButton}" Width="82" Height="32"
+                            Margin="0,0,10,0" Click="Cancel_Click" />
+                    <Button Content="完成" Style="{StaticResource PrimaryButton}" Width="82" Height="32"
+                            Click="Ok_Click" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

@@ -1,0 +1,100 @@
+<UserControl x:Class="MpvSettings.Views.AudioView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:MpvSettings.Controls">
+    <StackPanel>
+
+        <controls:SettingCard Title="外部音频">
+            <StackPanel>
+                <controls:OptionRow Title="自动加载同名外部音频" Description="默认打开。播放视频时自动加载同目录下与视频同名的音频文件；视频自带音轨优先，只有视频没有音轨时才用外部同名音频。改动需重启播放器生效">
+                    <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding ExternalAudioAuto, Mode=TwoWay}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="音轨优先级" Description="视频自带音轨 &gt; 同名外部音频"
+                                    IsNote="True">
+                    <TextBlock Text="内封优先" FontSize="12" Foreground="{StaticResource WeakTextBrush}" />
+                </controls:OptionRow>
+            </StackPanel>
+        </controls:SettingCard>
+
+        <controls:SettingCard Title="BassMax 音效链路">
+            <StackPanel>
+                <controls:OptionRow Title="音效滤镜（常驻）" Description="专属音效滤镜始终启用，导出导入、恢复默认和音效开关都不会关掉它；你自己加的其它滤镜也会保留。改动需重启播放器生效"
+                                    IsNote="True">
+                    <TextBlock Text="始终启用" FontSize="12" Foreground="{StaticResource WeakTextBrush}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="音效开关（增强 / 旁通）" Description="在所有播放器里切换音效增强 / 旁通，改完立即生效，不会改变滤镜本身">
+                    <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding BassMaxEnabled, Mode=TwoWay}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="音量上限 100%" Description="默认打开。音效驱动 1.0 的声音已经足够大，再叠加超过 100% 的软件音量只会削波破坏声音；关掉则回到 mpv 原生上限 130%。改动需重启播放器生效">
+                    <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding VolumeCap100, Mode=TwoWay}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="低音 Bass" Description="低音增益，−12.0 ~ +12.0 dB，默认 +2.0；改完立即生效。拖动粗调，方向键 ±0.1 精调">
+                    <controls:ValueSlider Value="{Binding Bass, Mode=TwoWay}" Minimum="-12" Maximum="12"
+                                          SmallChange="0.1" LargeChange="1" TickFrequency="0.1"
+                                          Format="{}{0:+0.0;-0.0;0.0}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="高音 Treble" Description="高音增益，−12.0 ~ +12.0 dB，默认 +2.0；改完立即生效">
+                    <controls:ValueSlider Value="{Binding Treble, Mode=TwoWay}" Minimum="-12" Maximum="12"
+                                          SmallChange="0.1" LargeChange="1" TickFrequency="0.1"
+                                          Format="{}{0:+0.0;-0.0;0.0}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="驱动 Drive" Description="驱动量 0.00 ~ 1.00，默认 1.00；设为 0 时相当于旁通，多声道下会自动收敛">
+                    <controls:ValueSlider Value="{Binding Drive, Mode=TwoWay}" Minimum="0" Maximum="1"
+                                          SmallChange="0.05" LargeChange="0.1" TickFrequency="0.05"
+                                          Format="{}{0:0.00}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="预设 Preset" Description="音效预设，默认「爵士乐」">
+                    <ComboBox Style="{StaticResource DarkComboBox}" MinWidth="240"
+                              SelectedIndex="{Binding PresetIndex, Mode=TwoWay}">
+                        <ComboBoxItem Content="标准乐 · 原声" />
+                        <ComboBoxItem Content="古典乐 · 轻低音 / 柔高音" />
+                        <ComboBoxItem Content="俱乐部 · 重低音" />
+                        <ComboBoxItem Content="流行乐 · 人声靠前" />
+                        <ComboBoxItem Content="爵士乐 · 均衡（默认）" />
+                        <ComboBoxItem Content="摇滚乐 · V 型" />
+                    </ComboBox>
+                </controls:OptionRow>
+                <controls:OptionRow Title="参数状态" Description="音效参数需要齐全才能生效；缺项时保存会按默认值自动补齐"
+                                    IsNote="True">
+                    <TextBlock Text="{Binding BassMaxRegStatus}" FontSize="12" Foreground="{StaticResource WeakTextBrush}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="生效时机" Description="本页的音效参数改完立即生效；其余设置需要重启播放器"
+                                    IsNote="True">
+                    <TextBlock Text="音效实时 · 其余需重启" FontSize="12" Foreground="{StaticResource WeakTextBrush}" />
+                </controls:OptionRow>
+            </StackPanel>
+        </controls:SettingCard>
+
+        <controls:SettingCard Title="输出与逃生口">
+            <StackPanel>
+                <controls:OptionRow Title="声道输出" Description="选择声道输出方式；音效滤镜会自行处理声道，无需额外下混">
+                    <ComboBox Style="{StaticResource DarkComboBox}"
+                              ItemsSource="{Binding AudioChannelsOptions}"
+                              SelectedIndex="{Binding AudioChannelsIndex, Mode=TwoWay}"
+                              IsEnabled="{Binding AudioChannelsCustom, Converter={StaticResource NotBool}}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="为什么是立体声" Description="auto / auto-safe 跟随 Windows 系统默认格式；输出端点通常锁在 2ch，5.1 音轨会被系统混音器下混成立体声。这不是配置错误，也不是音效滤镜的问题。MPC-HC / BE 和 PotPlayer 用自带渲染器绕过系统混音器，mpv 没有这个开关。"
+                                    IsNote="True">
+                    <TextBlock Text="系统限制" FontSize="12" Foreground="{StaticResource WeakTextBrush}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="需要原始声道时" Description="NVIDIA HDMI 驱动通常不支持独占，无法直通。真要 5.1 输出，可用支持多声道的端点配合 audio-exclusive=yes 与 audio-channels=5.1；独占期间其它程序会静音。立体声设备无需改动。"
+                                    IsNote="True">
+                    <TextBlock Text="按需设置" FontSize="12" Foreground="{StaticResource WeakTextBrush}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="打开 BassMax 原厂面板" Description="打开音效滤镜自带的原厂属性页；找不到组件时按钮会置灰">
+                    <Button Content="打开面板" Style="{StaticResource GhostButton}"
+                            IsEnabled="{Binding BassMaxPanelAvailable}" Click="Panel_Click" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="Ctrl+b 增强 / 旁通" Description="播放时按 Ctrl+b 在「增强」和「旁通」间切换；要改这个键请到「快捷键」页"
+                                    IsNote="True">
+                    <TextBlock Text="Ctrl+b" FontSize="12" Foreground="{StaticResource WeakTextBrush}" />
+                </controls:OptionRow>
+                <controls:OptionRow Title="比特流直通互斥" Description="启用比特流直通时与音效滤镜互斥，但滤镜仍会保留；可用 Ctrl+b 或关闭音效开关旁通"
+                                    IsNote="True">
+                    <TextBlock Text="{Binding SpdifText}" FontSize="12" Foreground="{StaticResource WeakTextBrush}" />
+                </controls:OptionRow>
+            </StackPanel>
+        </controls:SettingCard>
+
+    </StackPanel>
+</UserControl>

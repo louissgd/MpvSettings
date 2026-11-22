@@ -1,0 +1,46 @@
+# 构建产物
+bin/
+obj/
+publish/
+_build*/
+*.dll
+*.pdb
+*.exe
+*.appx
+*.msix
+
+# 备份 / 临时
+_bak*/
+_verify/
+_research/
+*.bak
+*.tmp
+*.log
+*.dmp
+
+# 运行时数据（配置目录不由本仓库分发）
+portable_config/
+*.ass
+*.srt
+*.sup
+*.ttf
+*.otf
+*.ttc
+*.woff
+*.woff2
+*.eot
+
+# 用户私有数据
+config.json
+*.xml.user
+*.suo
+*.user
+
+# 编辑器 / 系统
+.vs/
+.vscode/
+.idea/
+.workbuddy*/
+Thumbs.db
+.DS_Store
+desktop.ini

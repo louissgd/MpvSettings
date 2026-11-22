@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <RollForward>Minor</RollForward>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>false</SelfContained>
+    <AssemblyName>MpvSettings</AssemblyName>
+    <RootNamespace>MpvSettings</RootNamespace>
+    <Version>1.0.5</Version>
+    <AssemblyVersion>1.0.5.0</AssemblyVersion>
+    <FileVersion>1.0.5.0</FileVersion>
+    <InformationalVersion>1.0.5</InformationalVersion>
+    <ApplicationIcon>Assets\MpvSettings.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 墨绿主题图标：既是 EXE 的应用程序图标，也供三个窗口的标题栏 / 任务栏取用。 -->
+    <Resource Include="Assets\MpvSettings.ico" />
+
+    <!-- 阶段 ⑦：无封面信息窗 + 单实例脚本。放成真实 .lua 文件再嵌进 EXE：
+         既有语法高亮可读，又不至于把 200 行 Lua 塞进 C# 字符串常量。
+         LogicalName 写死，避免改目录结构后取不到资源。 -->
+    <EmbeddedResource Include="Assets\MyMPC_ui.lua" LogicalName="MpvSettings.MyMPC_ui.lua" />
+
+    <!-- 阶段 ⑨：default 命令行开关要能把这两个文件恢复成出厂内容，所以它们必须住在 EXE 里。
+         之前它们只存在于生产目录，装一次就再也回不去了。 -->
+    <EmbeddedResource Include="Assets\context_menu.conf" LogicalName="MpvSettings.context_menu.conf" />
+    <EmbeddedResource Include="Assets\mpv-settings.lua" LogicalName="MpvSettings.mpv-settings.lua" />
+  </ItemGroup>
+
+</Project>
