@@ -1,6 +1,7 @@
 # MpvSettings 1.0.6 改动记录
 
 > 1.0.5 → 1.0.6。两处修复：**① 无 HDR 显示器时的显示与写盘一致性**——其中写盘分支是**功能正确性修复**（不只是显示）：`tone-mapping` 在无 HDR 屏上从错误的 `clip` 改为 `spline`；**② 删除过时的右键菜单播放列表说明**。
+> 同日（2026-11-23）晚间又追加两项并**并入 1.0.6、不升版**：**③ 底部细横线进度条（新功能，默认开）**；**④ 纯音频封面时自动关闭 RTX HDR / VSR（崩溃缓解）**。详见第八节；最终产物 md5 `4e007c87…` / 492,758 B。
 > 前次基线见 `MpvSettings_1.0.5_改动记录.md`（1.0.5，末次产物 md5 `6cecd962…`，含 1.9 描边=1 改动后重编；1.0.5 文档第五节的 `6025b354…` 未随 1.9 同步，以实测 `6cecd962…` 为准）。
 >
 > 这两处原写在 1.0.5 草稿记录的 1.10 节（当时判"版本号仍 1.0.5"、未发版、未进 `docs/development/`）。用户事后要求复查"改动前是否影响功能正确性"，核对 AHK / lua 后确认写盘分支会实际影响 HDR 片源在 SDR 屏上的显示，故升 1.0.6 单独发版。
@@ -56,9 +57,11 @@ setting.exe 的 `HdrSupported = DetectHdrSupported()`（枚举活动显示器有
 | `MpvSettings.csproj` | Version / InformationalVersion → `1.0.6`；AssemblyVersion / FileVersion → `1.0.6.0` |
 | `Views/AboutView.xaml` | 「MPV 简单设置 1.0.5」→「MPV 简单设置 1.0.6」 |
 
-标题栏 `· v1.0.6` 由 `MainWindow.xaml.cs` 读 `InformationalVersion` 自动显示，`AppVersion` 里 `IndexOf('+')` 截断 SourceLink 追加的 commit hash，无需改 XAML。EXE 元数据实测：`FileVersion=1.0.6.0` / `ProductVersion=1.0.6+08c79f60…`。
+标题栏 `· v1.0.6` 由 `MainWindow.xaml.cs` 读 `InformationalVersion` 自动显示，`AppVersion` 里 `IndexOf('+')` 截断 SourceLink 追加的 commit hash，无需改 XAML。EXE 元数据实测：`FileVersion=1.0.6.0` / `ProductVersion=1.0.6+<commit>…`。
 
-## 三、文件改动清单（8 个公开文件）
+## 三、文件改动清单
+
+初版（第一~三节）8 个公开文件：
 
 - `Models/SettingsDraft.cs`：`HdrSupported` 环境快照 + 显示层属性（`HdrModeDisplayIndex` / `HdrModeInteractive` / `OnlyFullscreenInteractive`），`ToneLockedBySdr` / `ToneInteractive` 纳入无 HDR 条件，`LoadFrom` 注入快照。
 - `Models/ShortcutCatalog.cs`：E5 播放列表说明文案。
@@ -67,25 +70,28 @@ setting.exe 的 `HdrSupported = DetectHdrSupported()`（枚举活动显示器有
 - `Services/WritePlanBuilder.cs`：`tone-mapping` 判定纳入 `HdrSupported`（功能修复）。
 - `Views/VideoView.xaml`：HDR 模式 / 仅全屏开关绑定与 Description。
 
-未改任何 `mpv.conf` / `input.conf` / 快捷键绑定：写盘逻辑在 EXE 里，配置模板保持原样。
+第八节追加（合并进 1.0.6，不升版）：`Assets/MyMPC_ui.lua`、`Models/SettingsDraft.cs`、`Models/WritePlan.cs`、`Services/WritePlanBuilder.cs`、`Views/PlaybackView.xaml`、`docs/功能说明.md`。
+
+未改任何 `mpv.conf` / `input.conf` / 快捷键绑定：写盘逻辑在 EXE 里，配置模板保持原样（第八节的 `osd_progress` 写 `script-opts/MyMPC.conf`）。
 
 ## 四、验证
 
 - `dotnet build -c Release --nologo`：**0 警告 0 错误**；`dotnet publish -c Release -r win-x64 -o publish`：成功。
-- 三处 EXE md5 完全一致：`1c38c8a4dd3746b51db7baf5db042ac6`（487,126 B）；生产目录副本元数据实测 `FileVersion=1.0.6.0`。
+- 初版三处 EXE md5 完全一致：`1c38c8a4dd3746b51db7baf5db042ac6`（487,126 B）；合并后最终 md5 见第八节。
 - 隔离配置目录跑 `publish/MpvSettings.exe --plan-only --config-dir=<临时目录> --dump-plan=<临时JSON>`：退出码 0，18 项变更 / 6 个文件；本机有 HDR 能力 → `IsHdrSupported()=true` → `tone-mapping` 仍算 `clip`（有 HDR 的默认组合不变）；`HdrSupported` / `HdrModeDisplayIndex` / `OnlyFullscreenInteractive` 均未出现在写计划里，环境快照没有被误识别为用户改动、不制造误写。
 - 无 HDR 显示器分支（本机有 HDR，无法实机复现）：`tone-mapping=spline` 由同源判据保证——C# `IsHdrSupported()` 与 AHK `DetectHdrSupported()` 都是"枚举支持 HDR 的活动 target 非空"，lua 启动降级逻辑已实测。
 - GUI 置灰 / 字体 / 颜色对话框需用户侧实机确认（无头环境测不了）。
 
-## 五、产物与部署状态
+## 五、产物与部署状态（合并后最终状态）
 
 | 位置 | 文件 | 版本 | 说明 |
 |---|---|---|---|
 | 源码 | `MpvSettings.csproj` | **1.0.6** | 四处版本号 + AboutView 硬编码均已改 |
-| 发布产物 | `MpvSettings\publish\MpvSettings.exe` | **1.0.6** | 487,126 B，md5 `1c38c8a4dd3746b51db7baf5db042ac6` |
+| 发布产物 | `MpvSettings\publish\MpvSettings.exe` | **1.0.6** | 492,758 B，md5 `4e007c8703071c411f9ccfa25b359990`（含第八节 lua 资源与文案） |
 | 打包源 | `12.mpv\MpvSettings.exe` | **1.0.6** | 已同步，与 publish md5 一致 |
 | 生产目录 | `<MPV安装目录>\MpvSettings.exe` | **1.0.6** | 已同步，与 publish md5 一致（元数据实测 1.0.6.0） |
-| 旧版备份 | `<备份目录>` | 1.0.5 | 三份：`MpvSettings_{publish,12mpv,production}_105.exe`，均 487,638 B / `6cecd962…` |
+| 旧版备份 | `<备份目录>\` | 1.0.5 | 三份：`MpvSettings_{publish,12mpv,production}_105.exe`，均 487,638 B / `6cecd962…` |
+| 合并前备份 | `<备份目录2>\` | 1.0.6 初版 | 两份 EXE + `MyMPC_ui_prev.lua`（进度条/RTX 改动前的旧 lua） |
 
 > 顺序：先备份三处旧 EXE，再 publish，再覆盖 12.mpv / 生产目录，最后 md5 比对。备份放在 `_bak_*` 目录，不污染打包源。
 
@@ -95,9 +101,54 @@ setting.exe 的 `HdrSupported = DetectHdrSupported()`（枚举活动显示器有
 - 无 HDR 显示器时 MpvSettings 保存会把 `tone-mapping` 写成 `spline`（HDR 片源转 SDR）；这是本次修复的正确行为，不要再手动改回 `clip`。
 - 有 HDR 显示器且保持「直通 + 色调关」默认组合时才写 `clip`（PQ 原样送显示器，零处理）。
 - 播放列表说明只改文案，未新增/删除任何快捷键绑定；想给「显示播放列表」指定按键，到快捷键页自行填写。
+- 底部进度条改动需重启播放器生效；纯音频无封面时由信息窗自带进度条接管，不重复显示。
 
 ## 七、发版状态
 
-- 提交：本次 8 个公开文件 + 本文件（脱敏版）一起提交，tag `v1.0.6`。
-- Release：仅附单个 `MpvSettings.exe`（487,126 B / `1c38c8a4…`），正文套 `docs/发布说明.md` 模板；上传后回读验哈希。
+- 提交：公开文件 + `docs/development/MpvSettings_1.0.6_改动记录.md`（脱敏版）一起提交，tag `v1.0.6`。
+- Release：仅附单个 `MpvSettings.exe`，正文套 `docs/发布说明.md` 模板；上传后回读验哈希。第八节追加后**不新建 Release**，删除旧资产、上传最终 EXE，并把 `v1.0.6` tag 移到最终提交。
 - 国内网盘链接是 MyMPC 整包的，不属于本项目资产，本次不动。
+
+## 八、同版本追加（2026-11-23 晚，并入 1.0.6，不升版）
+
+1.0.6 发布后用户又提两项，核对 mpv-lazy / uosc 与 FrankyRenderer 相关链路后实现，用户实测通过后决定并入 1.0.6。
+
+### 8.1 【新功能】底部细横线进度条（默认开）
+
+**来源核对**：mpv-lazy 播放时常驻的"置顶细横线进度条"实际来自 **uosc 的 `progress` 元素**（`progress=windowed` + `progress_size=2` + line 游标），不是 mpv 原生 OSD bar（后者只在主动 seek 时闪现）。
+
+**方案**：用户选「自研精简版」，不搬整套 uosc（40+ 文件，会与 MyMPC 原生右键菜单补丁、配色体系、`MyMPC_ui.lua` 的封面信息窗 / 单实例 / RTX 逻辑大面积冲突）。在 `Assets/MyMPC_ui.lua` 新增 ①a 节，独立 `ass-events` overlay：
+
+- 贴屏幕**底部**一条 2px 细横线游标，宽度 `max(12, W/60)`，随 `time-pos/duration` 左右移动；
+- **不画整条轨道**（透明），只显示游标本身——避免初版"整条黑线被覆盖"的观感；
+- 颜色用**主题绿 `#A3F6BE`**（ASS BGR 写法 `\c&HBEF6A3&`，与 `Themes/Theme.xaml` 的 `AccentBrush` 一致）；
+- 0.10s 周期 timer；`osd-dimensions` 变化时重画；纯音频无封面（`no_art`）时跳过，避免与信息窗自带进度条重复；
+- 窗口与全屏都显示（用户选「始终显示」，比 mpv-lazy 的 windowed 更全）。
+
+**观感迭代**：初版贴顶 / `W/16`（1920 下约 120px）/ 暗灰整条轨道 / 紫色 `#B59AFF`；用户实测后按上述改为贴底 / `W/60`（约 32px）/ 透明轨道 / 主题绿。信息窗自身的 `PURPLE` 常量（与进度条无关）保留未动。
+
+**开关**：`osd_progress` 写 `script-opts/MyMPC.conf`，默认 `yes`。
+
+### 8.2 【崩溃缓解】纯音频封面时自动关闭 RTX HDR / VSR
+
+- `apply_rtx()` 前置判据加封面检测：`current-tracks/video` 的 `image==true`（与 `cover-art.conf` 同源）→ `rtx_remove()` 返回，HDR 与 VSR 都关（用户选「都关」，静态封面无超分意义，最大限度降低 d3d11vpp 挂卸带来的崩溃几率）。
+- 补 `mp.observe_property("current-tracks", ...)`：封面标志可能比 `file-loaded` 晚到，初版 0.25s 判不到、1s 兜底又因 `rtx_filter` 已挂被跳过的时序漏洞，靠这个 observe 保证误挂的滤镜被摘掉。
+- 用户实测：RTX HDR 关闭**测试通过**；VSR 不崩溃，测试略过。
+
+### 8.3 MpvSettings 侧改动（支持进度条开关）
+
+- `Models/SettingsDraft.cs`：加 `OsdProgress` 字段 + `LoadFrom`（缺键按 `yes`）+ `ResetDefaults`。
+- `Services/WritePlanBuilder.cs`：`BuildMyMpcConf` 写 `osd_progress`。
+- **两处易漏登记补齐**：`WritePlanBuilder` 的 `uiChanged` 字段表、`Models/WritePlan.cs` 的 `ManagedProps`——漏登记会导致单独切换开关不写盘，或每次保存都误判为改动。
+- `Views/PlaybackView.xaml`：「播放」卡片加「底部进度条」开关；`docs/功能说明.md` 同步一行。
+
+### 8.4 验证
+
+- `dotnet build` / `dotnet publish` 0 错误；lua 用 `mpv --no-config --idle --script` 实际加载验证语法（反向用坏语法确认检测方法有效，好脚本无 `Lua error`）。
+- 隔离目录 `--default` 实测写出 `MyMPC.conf` 含 `osd_progress=yes`、lua 资源含新代码；观感调整后复验写出的 lua 含 `BEF6A3` / `H-2` / `W/60` 且旧紫暗轨代码已清除。
+- 三处 EXE md5 一致 `4e007c8703071c411f9ccfa25b359990`（492,758 B）；两处运行目录 lua md5 一致 `c866f066…`（CRLF，含新配色与贴底）。
+
+### 8.5 部署与 Release 更新
+
+- 合并前备份三处旧 EXE 与旧 lua 到 `<备份目录2>\`。
+- v1.0.6 已有 Release（初版资产为旧 EXE），本次**不新建 Release**：删除旧资产、上传最终 EXE（492,758 B / `4e007c87…`），`v1.0.6` tag 移到最终提交，回读下载验哈希。

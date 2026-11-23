@@ -90,6 +90,10 @@ public sealed class SettingsDraft : ObservableObject
     // 外挂字幕改动后自动重读（script-opts/MyMPC.conf: sub_autoreload）。
     // 本包出厂默认开；mpv 原生不监视字幕文件，靠 MyMPC_ui.lua 轮询 mtime+size 触发 sub-reload。
     private bool _subAutoReload = true;
+    // 顶部细横线进度条（script-opts/MyMPC.conf: osd_progress，2026-11-23 新增）。
+    // 移植自 mpv-lazy/uosc 的 progress 视觉：窗口与全屏都显示一条贴顶细线 + 移动游标。
+    // 默认开（本包出厂值）；缺键时按开处理，写盘显式补键。纯音频无封面时跳过（信息窗自带进度条）。
+    private bool _osdProgress = true;
     private bool _coverOriginal = true; private double _coverMax = 1200;
     private bool _noArtUi = true; private double _fitRatio = 90; private bool _allowMultiInstance;
 
@@ -199,6 +203,8 @@ public sealed class SettingsDraft : ObservableObject
     public bool SubsFallbackForced { get => _subsFallbackForced; set => Set(ref _subsFallbackForced, value); }
     /// <summary>外挂字幕文件被修改后自动重读。script-opts/MyMPC.conf: sub_autoreload，默认开。</summary>
     public bool SubAutoReload { get => _subAutoReload; set => Set(ref _subAutoReload, value); }
+    /// <summary>顶部细横线进度条。script-opts/MyMPC.conf: osd_progress，默认开。</summary>
+    public bool OsdProgress { get => _osdProgress; set => Set(ref _osdProgress, value); }
     public bool CoverOriginal { get => _coverOriginal; set => Set(ref _coverOriginal, value); }
     public double CoverMax { get => _coverMax; set => Set(ref _coverMax, value); }
     public bool NoArtUi { get => _noArtUi; set => Set(ref _noArtUi, value); }
@@ -588,6 +594,8 @@ public sealed class SettingsDraft : ObservableObject
 
         // 外挂字幕热重载：只有显式写 sub_autoreload=no 才算关闭；缺键/文件未创建按出厂默认「开启」
         SubAutoReload = !string.Equals(o.Get("sub_autoreload", "yes"), "no", StringComparison.OrdinalIgnoreCase);
+        // 顶部进度条：只有显式写 osd_progress=no 才算关闭；缺键按出厂默认「开启」
+        OsdProgress = !string.Equals(o.Get("osd_progress", "yes"), "no", StringComparison.OrdinalIgnoreCase);
 
         // 只有显式写 no_art_ui=no 才算用户关闭；文件未创建按出厂默认「开启」
         NoArtUi = !string.Equals(o.Get("no_art_ui", "yes"), "no", StringComparison.OrdinalIgnoreCase);
@@ -735,7 +743,7 @@ public sealed class SettingsDraft : ObservableObject
     {
         HwdecOptions = HwdecLabels; HwdecCustom = false; HwdecIndex = 0;
         Deinterlace = true; LoopFile = true; SavePosition = false;
-        SubsMatchOsLanguage = true; SubsFallbackForced = false; SubAutoReload = true;
+        SubsMatchOsLanguage = true; SubsFallbackForced = false; SubAutoReload = true; OsdProgress = true;
         SubFont = "Microsoft YaHei"; SubColor = "#FFFFFFFF";
         SubFontSize = 48; SubLineSpacing = 0; SubBold = false; SubItalic = false;
         SubOutlineSize = 1; SubShadowOffset = 0; SubMarginX = 19; SubMarginY = 34;

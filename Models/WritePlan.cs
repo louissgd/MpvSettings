@@ -199,7 +199,7 @@ public sealed class DraftBaseline
     {
         // 页 A
         "HwdecIndex", "HwdecCustom", "Deinterlace", "LoopFile", "SavePosition",
-        "SubsMatchOsLanguage", "SubsFallbackForced", "SubAutoReload", "CoverOriginal", "CoverMax",
+        "SubsMatchOsLanguage", "SubsFallbackForced", "SubAutoReload", "OsdProgress", "CoverOriginal", "CoverMax",
         "NoArtUi", "FitRatio", "AllowMultiInstance",
         // 页 A 弹窗「字幕样式」（只写 SRT 等纯文本；sub-ass-override=no 保护 ASS/SUP）
         "SubFont", "SubColor", "SubFontSize", "SubLineSpacing", "SubBold", "SubItalic",

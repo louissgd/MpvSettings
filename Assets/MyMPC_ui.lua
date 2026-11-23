@@ -11,6 +11,7 @@
 --   single_instance = yes|no      yes = 双击文件复用当前窗口；no = 每个文件都开新窗口
 --   pipe_name       = MyMPC_mpv   必须与 mpv.conf 的 input-ipc-server 一致
 --   sub_autoreload  = yes|no      yes = 外挂字幕文件被改动后自动重读（2026-11-17 新增，默认 yes）
+--   osd_progress    = yes|no      底部细横线进度条（2026-11-23 新增，默认 yes；窗口/全屏都显示）
 --   rtx_vsr         = yes|no      NVIDIA RTX 超分辨率（2026-11-18 新增，默认 yes）
 --   rtx_hdr         = yes|no      NVIDIA RTX Video HDR，SDR→HDR10（默认 yes，需 Windows HDR 开；HDR 源一律跳过）
 --   rtx_vsr_limit   = sd|720p|1080p|1440p   VSR 启用上限，阈值照抄 MPCVR 的 SetSuperRes()
@@ -39,6 +40,7 @@ local o = {
     single_instance = true,
     pipe_name = "MyMPC_mpv",
     sub_autoreload = true,
+    osd_progress = true,
     rtx_vsr = true,
     rtx_hdr = true,
     rtx_vsr_limit = "1080p",
@@ -245,6 +247,79 @@ mp.register_event("end-file", function()
 end)
 
 -- ============================================================
+-- ①a 底部细横线进度条（2026-11-23 新增，移植自 mpv-lazy/uosc 的 progress）
+--   窗口模式与全屏都显示（用户选定「始终显示」，与 mpv-lazy 的 windowed 不同）。
+--   外观：贴屏幕底部一条细横线游标（默认约屏宽 1/60），随 time-pos/duration
+--         左右移动——就是 mpv-lazy 里那个"短横线"。不画整条轨道（透明），
+--         只显示游标本身；颜色用主题绿（与设置界面强调色一致）。
+--   纯音频无封面时信息窗自己画了进度条，这里跳过，避免两条叠着。
+--   开关 osd_progress 写 script-opts/MyMPC.conf（EXE 默认 yes）。
+-- ============================================================
+local pov, ptimer, pg_ok = nil, nil, false
+local PG_COLOR  = [[\c&HBEF6A3&]]   -- 游标：主题绿 #A3F6BE（ASS BGR 写法，与 App 强调色一致）
+
+local function pg_draw()
+    if not pg_ok or not o.osd_progress then return end
+    if no_art then return end   -- 纯音频无封面：信息窗已画进度条，不重复
+    local dim = mp.get_property_native("osd-dimensions") or {}
+    local W, H = dim.w or 640, dim.h or 360
+    if W <= 0 or H <= 0 then return end
+    pov.res_x, pov.res_y = W, H
+
+    local dur = mp.get_property_number("duration") or 0
+    local pos = mp.get_property_number("time-pos") or 0
+    local pct = dur > 0 and pos / dur or 0
+    if pct < 0 then pct = 0 end
+    if pct > 1 then pct = 1 end
+
+    local cursor_w = math.max(12, math.floor(W / 60))
+    local cursor_x = math.floor((W - cursor_w) * pct)
+    local a = {}
+    -- 只画游标，不画整条轨道（轨道透明）；\an7 左上对齐，pos(x, H-2) 让 2px 高的线贴屏幕底部
+    a[#a + 1] = string.format([[{\an7\p1\pos(%d,%d)%s}m 0 0 l %d 0 l %d 2 l 0 2{\p0}]],
+        cursor_x, H - 2, PG_COLOR, cursor_w, cursor_w)
+    pov.data = table.concat(a, "\n")
+    pov:update()
+end
+
+local function pg_decide()
+    if not o.osd_progress then
+        if pov then pov:remove() end
+        if ptimer then ptimer:kill(); ptimer = nil end
+        pg_ok = false
+        return
+    end
+    if not pov then
+        local ok, created = pcall(mp.create_osd_overlay, "ass-events")
+        if not ok or not created then
+            msg.warn("[MyMPC/ui] 不支持 ass-events overlay，底部进度条跳过")
+            o.osd_progress = false
+            return
+        end
+        pov = created
+    end
+    pg_ok = true
+    -- 纯音频无封面时信息窗已有进度条，不重复画
+    if no_art then
+        if pov then pov:remove() end
+    else
+        pg_draw()
+    end
+    if not ptimer then ptimer = mp.add_periodic_timer(0.10, pg_draw) end
+end
+
+mp.register_event("file-loaded", function()
+    pg_decide()
+end)
+mp.register_event("end-file", function()
+    if pov then pov:remove() end
+    if ptimer then ptimer:kill(); ptimer = nil end
+    pg_ok = false
+end)
+-- 窗口尺寸变化时重画（res_x/res_y 要跟着 osd-dimensions 走）
+mp.observe_property("osd-dimensions", "native", function() pg_draw() end)
+
+-- ============================================================
 -- ①c 外挂字幕改动后自动重读（2026-11-17 新增，用户要求，默认开）
 --   mpv 原生只在你主动 sub-reload / 重载文件时才重读外挂字幕；
 --   用字幕编辑器（如 Subtitle Edit / Aegisub）改盘上 .srt 后，播放中的
@@ -391,6 +466,14 @@ local function apply_rtx()
     local h = mp.get_property_number("height") or 0
     if w < 1 or h < 1 then rtx_remove() return end
 
+    -- 前置 ②b（2026-11-23）：纯音频封面跳过 RTX。
+    -- 封面是静态图（current-tracks/video/image=true，与 cover-art.conf 同一判据），
+    -- 挂 d3d11vpp 做 VSR/RTX-HDR 毫无画质收益，反而触发已知的空指针崩溃
+    -- （见本章节开头 mpv#17800 / 2026-11-21 定性）。此处直接摘掉滤镜返回，
+    -- 覆盖 file-loaded 与 video-params 触发链；封面退出后由后续触发正常恢复。
+    local vtrack = mp.get_property_native("current-tracks/video") or {}
+    if vtrack.image == true then rtx_remove() return end
+
     local prim  = mp.get_property("video-params/primaries") or ""
     local gamma = mp.get_property("video-params/gamma") or ""
     local pixel = mp.get_property("video-params/pixelformat") or ""
@@ -534,6 +617,9 @@ mp.register_event("end-file", function()
 end)
 mp.observe_property("video-params", "native", function() schedule_apply_rtx(0.15) end)
 mp.observe_property("hwdec-current", "native", function() schedule_apply_rtx(0.15) end)
+-- 封面轨识别（2026-11-23）：封面 image 标志可能比 file-loaded 晚到，
+-- current-tracks 一变就重判，确保封面确认后立刻摘掉误挂的 RTX 滤镜。
+mp.observe_property("current-tracks", "native", function() schedule_apply_rtx(0.15) end)
 -- MPCVR 策略：窗口倍率变化（Alt+2/3 / fit90 Alt+4 / 拖拽窗口）要实时重算 VSR。
 -- 【关键】observe window-scale 而不是 osd-width——osd 会被滤镜自己的输出撑大，
 -- 拿它当触发源会和 scale 计算形成正反馈（实测滚到 scale=8.5 / osd=2737）。

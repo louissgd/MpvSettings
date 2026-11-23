@@ -451,6 +451,7 @@ public static class WritePlanBuilder
         //
         // 与 cover-art 一样，放在其它键算完之后：要等这批改动算完，才知道「用户这次是不是真的在保存」。
         bool uiChanged = baseline.Changed(d, "NoArtUi", "FitRatio", "AllowMultiInstance", "SubAutoReload",
+                                          "OsdProgress",
                                           "RtxVsr", "RtxHdr", "RtxVsrLimitIndex", "RtxHdrPeakIndex");
         // 前提不满足时开关在反推阶段已被归零，baseline 捕获到的就是归零值，diff 看不到
         // 「盘上 yes → 应该 no」这一步。这里直接比 MyMPC.conf 的现值：若静态前提不合格
@@ -654,6 +655,7 @@ public static class WritePlanBuilder
             "no_art_ui=" + YesNo(d.NoArtUi),
             "single_instance=" + YesNo(!d.AllowMultiInstance),   // UI 是「允许同时运行多个」，脚本要反过来
             "sub_autoreload=" + YesNo(d.SubAutoReload),          // 外挂字幕改动后自动重读（MyMPC_ui.lua 轮询实现）
+            "osd_progress=" + YesNo(d.OsdProgress),              // 顶部细横线进度条（MyMPC_ui.lua overlay，默认开）
             // 1.0.2：NVIDIA RTX 视频增强。Lua 侧判断 Windows HDR + 分辨率上限后才真正挂 vf。
             // 静态前提（NVIDIA App 总开关 / 硬件）不满足时用 EnabledForWrite 强制写 no——
             // 草稿层已把开关归零，这里再兜一次底，防止 --default / 导入 / patch 绕过 GUI 时漏写。

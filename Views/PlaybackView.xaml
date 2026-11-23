@@ -21,6 +21,9 @@
                 <controls:OptionRow Title="保留播放进度" Description="下次打开同一个文件时从上次的位置继续播放">
                     <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding SavePosition, Mode=TwoWay}" />
                 </controls:OptionRow>
+                <controls:OptionRow Title="底部进度条" Description="播放时在窗口底部显示一条细横线游标（透明轨道），随进度移动；窗口与全屏都显示。纯音频无封面时由信息窗自己显示进度">
+                    <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding OsdProgress, Mode=TwoWay}" />
+                </controls:OptionRow>
             </StackPanel>
         </controls:SettingCard>
 
