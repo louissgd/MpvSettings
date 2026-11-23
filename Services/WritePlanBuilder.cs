@@ -224,8 +224,12 @@ public static class WritePlanBuilder
         // 直通显示器」仍在被压暗。两个下拉共同决定这一个键，所以无条件写（force），
         // ConfWriter 自己跳过同值；force 也保证「恢复默认」一定把盘上残留的
         // spline 归位成 clip。自定义态视为需要处理，避免误判成零处理。
-        string tm = (d.HdrModeIndex == 0 && d.ToneIndex == 0 &&
-                     !d.HdrModeCustom && !d.ToneCustom) ? "clip" : "spline";
+        // 无 HDR 显示器时 lua 启动会降级成 tonemap，必须 spline（与 setting.ahk
+        // MpvSyncToneMapping 的 !HdrSupported 分支一致）；否则界面显示「HDR转SDR」
+        // 却写 clip（PQ 原样送 SDR 屏），自相矛盾。
+        string tm = d.HdrSupported &&
+                    d.HdrModeIndex == 0 && d.ToneIndex == 0 &&
+                    !d.HdrModeCustom && !d.ToneCustom ? "clip" : "spline";
         Put(MpvLabel, mpvPath, m, "tone-mapping", tm, "ToneMapping", force: true);
 
         int lv = d.VideoLevelsIndex;

@@ -6,11 +6,11 @@
 
         <controls:SettingCard Title="HDR 与色调映射">
             <StackPanel>
-                <controls:OptionRow Title="HDR 模式" Description="直通显示器：系统 HDR 常开时原样输出；SDR 桌面下只在播放 HDR 片源时自动开启系统 HDR，播完关回。SDR 片源不会触发切换。当前组合不在预设里时显示「自定义」">
+                <controls:OptionRow Title="HDR 模式" Description="直通显示器：系统 HDR 常开时原样输出；SDR 桌面下只在播放 HDR 片源时自动开启系统 HDR，播完关回。SDR 片源不会触发切换。无 HDR 显示器时自动显示「HDR转SDR」并置灰，配置不动，播放时由脚本降级">
                     <ComboBox Style="{StaticResource DarkComboBox}"
                               ItemsSource="{Binding HdrModeOptions}"
-                              SelectedIndex="{Binding HdrModeIndex, Mode=TwoWay}"
-                              IsEnabled="{Binding HdrModeCustom, Converter={StaticResource NotBool}}" />
+                              SelectedIndex="{Binding HdrModeDisplayIndex, Mode=TwoWay}"
+                              IsEnabled="{Binding HdrModeInteractive}" />
                 </controls:OptionRow>
                 <controls:OptionRow Title="色调增强档位" Description="三档色调增强预设（0.6/0.8/1.0），在峰值 2000nits / DisplayHDR 1400 显示器上人眼实测标定，支持杜比视界Profile4、5、7、8 (其他Profile未测试)；HDR 转 SDR 时本项自动置灰并关闭（两者互斥）；当前组合不在预设里时显示「自定义」，原设置不会被覆盖">
                     <ComboBox Style="{StaticResource DarkComboBox}"
@@ -24,8 +24,9 @@
                               SelectedIndex="{Binding VideoLevelsIndex, Mode=TwoWay}"
                               IsEnabled="{Binding VideoLevelsCustom, Converter={StaticResource NotBool}}" />
                 </controls:OptionRow>
-                <controls:OptionRow Title="仅全屏时切换系统 HDR" Description="只在全屏播放时才切换系统的 HDR 状态">
-                    <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding OnlyFullscreen, Mode=TwoWay}" />
+                <controls:OptionRow Title="仅全屏时切换系统 HDR" Description="只在全屏播放时才切换系统的 HDR 状态；无 HDR 显示器时置灰">
+                    <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding OnlyFullscreen, Mode=TwoWay}"
+                              IsEnabled="{Binding OnlyFullscreenInteractive}" />
                 </controls:OptionRow>
             </StackPanel>
         </controls:SettingCard>

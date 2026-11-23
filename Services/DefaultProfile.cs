@@ -41,6 +41,7 @@ public static class DefaultProfile
         d.NvVsrAppRaw = NvidiaAppState.ReadVsr();
         d.NvHdrAppRaw = NvidiaAppState.ReadHdr();
         d.WindowsHdrEnabled = WindowsHdrState.IsHdrEnabled();
+        d.HdrSupported = WindowsHdrState.IsHdrSupported();
         d.ResetAll();
         ApplyDetectedSubtitleFont(d);
         return d;

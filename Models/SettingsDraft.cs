@@ -122,6 +122,12 @@ public sealed class SettingsDraft : ObservableObject
     private int _videoLevelsIndex; private bool _videoLevelsCustom; private string[] _videoLevelsOptions = LevelsLabels;
     private bool _onlyFullscreen;
 
+    // HDR 能力（只读环境快照，不参与 diff / 写盘）。无 HDR 显示器时：
+    //   · HDR 模式显示成「HDR转SDR」（盘上原始值不动，lua 启动自己降级）
+    //   · HDR 模式 / 色调档位 / 仅全屏切换三个控件置灰
+    // 与 setting.ahk 的 HdrSupported + MpvRefresh() 同一套行为。
+    private bool _hdrSupported = true;
+
     // 拖动窗口边框时是否锁住窗口宽高比。
     // false = 窗口自由拉伸、画面按视频比例居中补黑边（本包默认，跟主流播放器一致）；
     // true = mpv 原生行为，窗口被强制保持视频比例，永远没有黑边。
@@ -229,11 +235,48 @@ public sealed class SettingsDraft : ObservableObject
     public bool HdrModeCustom { get => _hdrModeCustom; set => Set(ref _hdrModeCustom, value); }
     public string[] HdrModeOptions { get => _hdrModeOptions; set => Set(ref _hdrModeOptions, value); }
 
-    /// <summary>true = HDR 模式为「转 SDR」。此时色调修复档位置灰、显示关闭、配置强制清零。</summary>
-    public bool ToneLockedBySdr => _hdrModeIndex == 1 || (_hdrModeCustom && string.Equals(_hdrRawMode, "tonemap", StringComparison.OrdinalIgnoreCase));
+    /// <summary>
+    /// HDR 能力（只读环境快照）。false = 没有支持 HDR 的活动显示器（或检测失败）。
+    /// 此时三个控件置灰、HDR 模式显示「HDR转SDR」，与 setting.ahk 的 HdrSupported 一致。
+    /// 不参与 diff / 写盘。
+    /// </summary>
+    public bool HdrSupported
+    {
+        get => _hdrSupported;
+        set
+        {
+            if (!Set(ref _hdrSupported, value)) return;
+            OnPropertyChanged(nameof(HdrModeDisplayIndex));
+            OnPropertyChanged(nameof(HdrModeInteractive));
+            OnPropertyChanged(nameof(ToneLockedBySdr));
+            OnPropertyChanged(nameof(ToneInteractive));
+            OnPropertyChanged(nameof(OnlyFullscreenInteractive));
+        }
+    }
 
-    /// <summary>色调档位下拉是否可交互：自定义态保护 或 HDR转SDR 时置灰。</summary>
-    public bool ToneInteractive => !_toneCustom && !ToneLockedBySdr;
+    /// <summary>
+    /// HDR 模式下拉的「显示层」索引。无 HDR 显示器时固定返回 1（HDR转SDR），
+    /// 与 AHK 的 mModeOn 覆盖一致；底层 _hdrModeIndex 保持盘上真实值，写盘不受影响
+    /// （lua 启动自己按能力降级，GUI 只负责显示得与运行时一致）。
+    /// 该态下控件已置灰，setter 理论上不会触发；真触发也直接吞掉，绝不改底层值。
+    /// </summary>
+    public int HdrModeDisplayIndex
+    {
+        get => _hdrSupported ? _hdrModeIndex : 1;
+        set { if (_hdrSupported) HdrModeIndex = value; }
+    }
+
+    /// <summary>HDR 模式下拉是否可交互：无 HDR 显示器或自定义态时置灰。</summary>
+    public bool HdrModeInteractive => _hdrSupported && !_hdrModeCustom;
+
+    /// <summary>true = 应显示/写「转 SDR」：无 HDR 显示器、或 HDR 模式为转 SDR。
+    /// 此时色调修复档位置灰、显示关闭、配置强制清零（AHK 的 tonemap 分支同行）。</summary>
+    public bool ToneLockedBySdr => !_hdrSupported
+        || _hdrModeIndex == 1
+        || (_hdrModeCustom && string.Equals(_hdrRawMode, "tonemap", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>色调档位下拉是否可交互：无 HDR 显示器、自定义态、HDR转SDR 时置灰。</summary>
+    public bool ToneInteractive => _hdrSupported && !_toneCustom && !ToneLockedBySdr;
 
     public int ToneIndex { get => _toneIndex; set => Set(ref _toneIndex, value); }
     public bool ToneCustom
@@ -247,6 +290,9 @@ public sealed class SettingsDraft : ObservableObject
     public bool VideoLevelsCustom { get => _videoLevelsCustom; set => Set(ref _videoLevelsCustom, value); }
     public string[] VideoLevelsOptions { get => _videoLevelsOptions; set => Set(ref _videoLevelsOptions, value); }
     public bool OnlyFullscreen { get => _onlyFullscreen; set => Set(ref _onlyFullscreen, value); }
+
+    /// <summary>仅全屏切换 HDR 是否可交互：无 HDR 显示器时无意义，置灰。</summary>
+    public bool OnlyFullscreenInteractive => _hdrSupported;
 
     /// <summary>
     /// mpv.conf: keepaspect-window。true = 拖动边框时窗口保持视频宽高比（mpv 出厂默认）；
@@ -493,6 +539,7 @@ public sealed class SettingsDraft : ObservableObject
         NvVsrAppRaw = NvidiaAppState.ReadVsr();
         NvHdrAppRaw = NvidiaAppState.ReadHdr();
         WindowsHdrEnabled = WindowsHdrState.IsHdrEnabled();
+        HdrSupported = WindowsHdrState.IsHdrSupported();
 
         ScriptConfStatus = missing.Count == 0
             ? "已就位"

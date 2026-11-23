@@ -477,7 +477,7 @@ mpv 只会静默失败或闪一行 OSD，没有任何补救入口。
 
 ### 4. 踩到的三个坑
 
-1. **menu.conf 的命令串解析把 `\` 当转义符**。写成 `run "C:\Users\..."` 时 mpv 日志报
+1. **menu.conf 的命令串解析把 `\` 当转义符**。写成 `run "<用户目录>\..."` 时 mpv 日志报
    `[input] Broken string escapes` + `Command run: error in argument 1`，静默什么都不发生。
    必须用**正斜杠**（或反斜杠双写）。
 2. **AHK v1 没有 `A_LocalAppData`**（那是 v2 的）。用了拿到空串，叠加 `#Warn` 就是一个运行时警告框。

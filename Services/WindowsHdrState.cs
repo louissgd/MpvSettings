@@ -61,6 +61,22 @@ public static class WindowsHdrState
         return false;
     }
 
+    /// <summary>
+    /// true = 至少一块活动显示器支持 HDR（不管当前是否开启）。
+    /// 对应 setting.ahk 的 DetectHdrSupported()（HdrWinEnum 非空）：无 HDR 显示器时
+    /// lua 启动会把 HDR 模式降级为 tonemap，GUI 据此置灰三个控件并把模式显示成「HDR转SDR」。
+    /// 检测失败返回 false，与 AHK 的「枚举不到就当不支持」一致；只读，绝不写配置。
+    /// </summary>
+    public static bool IsHdrSupported()
+    {
+        try
+        {
+            // EnumTargets() 只收「支持且活动」的 target，非空即代表有 HDR 能力显示器。
+            return EnumTargets().Count > 0;
+        }
+        catch { return false; }
+    }
+
     /// <summary>枚举当前活动、且支持 HDR 的显示 target（AHK HdrWinEnum）。</summary>
     private static System.Collections.Generic.List<Target> EnumTargets()
     {

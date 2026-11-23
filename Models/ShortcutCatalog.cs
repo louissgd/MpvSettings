@@ -136,7 +136,7 @@ public static class ShortcutCatalog
             Rows =
             {
                 N("e5.playlist", "显示播放列表", "show-text ${playlist}",
-                  "原默认 F8 已被本包占用；右键菜单「播放列表」仍可打开"),
+                  "原默认 F8 已被本包占用，可在此自行指定按键"),
                 N("e5.stop", "停止播放（保留列表）", "stop keep-playlist", "mpv 没有默认绑定"),
                 N("e5.seek+10", "快进 10 秒", "seek 10", "默认只有快进 5 / 60 秒"),
                 N("e5.seek-10", "快退 10 秒", "seek -10", "默认只有快退 5 / 60 秒"),
