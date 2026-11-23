@@ -52,6 +52,9 @@ public sealed class ConfigLocator
 
     public string CoverArtConf => Join("cover-art.conf");
     public string AudioInfoConf => Join("audio-info.conf");
+
+    /// <summary>杜比视界硬解兜底：零拷贝默认下给 DV 片源回退 auto-copy（2026-11-24 新增）。</summary>
+    public string DolbyVisionConf => Join("dolby-vision.conf");
     public string CacheDir => Join("cache");
     public string ScriptsDir => Join("scripts");
 

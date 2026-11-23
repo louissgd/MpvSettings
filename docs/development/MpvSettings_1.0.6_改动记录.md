@@ -152,3 +152,42 @@ setting.exe 的 `HdrSupported = DetectHdrSupported()`（枚举活动显示器有
 
 - 合并前备份三处旧 EXE 与旧 lua 到 `<备份目录2>\`。
 - v1.0.6 已有 Release（初版资产为旧 EXE），本次**不新建 Release**：删除旧资产、上传最终 EXE（492,758 B / `4e007c87…`），`v1.0.6` tag 移到最终提交，回读下载验哈希。
+
+## 9. 8K60 硬解回拷优化 + 色调档位文案（2026-11-24）
+
+### 9.1 现象与定位
+
+- 片源 `Bulgaria 8K 60P (FUHD).mkv`：VP9 7680×4320 / 60fps / yuv420p / SDR。
+- 生产配置 `hwdec=auto-copy` → 实际走 `vp9-d3d11va-copy`：GPU 解码后回拷内存，再上传给 gpu-next。
+- 同条件 8 秒实测（`--geometry=1920x1080 --ao=null --loop-file=no --length=8`）：
+  - `auto-copy`：`drop-frame-count=363`、`hwdec-current=d3d11va-copy`；
+  - `d3d11va` 零拷贝：`drop-frame-count=2`、`hwdec-current=d3d11va`。
+- 解码器自身 `decoder-frame-drop-count=0`，瓶颈在回拷/再上传，不在解码单元（与 MPCVR / FrankyRenderer 零拷贝路径 GPU 仅 50% 一致）。
+
+### 9.2 改法
+
+- 生产 `mpv.conf`：`hwdec=auto-copy` → `hwdec=d3d11va`，新增 `include=~~/dolby-vision.conf`。
+- 新建 `portable_config/dolby-vision.conf`：`profile-cond=p["current-tracks/video/dolby-vision-profile"] ~= nil` 时强制 `hwdec=auto-copy`，保住 P4/P5/P7/P8（本版 D3D11 零拷贝拿不到 P5 的 RPU 系数会黑屏）。独立 include，避免 auto-profile 里的 `hwdec` 行污染 EXE 对 mpv.conf 下拉值的反推。
+- `Models/SettingsDraft.cs`：默认硬解改 `d3d11va`（`HwdecIndex=3`，`LoadFrom` 缺键兜底同步），标签改「auto-copy（杜比视界兼容）」/「d3d11va（推荐·零拷贝）」。
+- `Views/VideoView.xaml`：「色调增强档位」说明去掉杜比视界 Profile4，改为「支持杜比视界Profile5、7、8」。
+- `docs/功能说明.md` 同步硬解默认值说明。
+- `dotnet publish` 后把新 EXE 部署到 `C:\Users\Administrator\MyMPC\MediaPlayer\mpv\MpvSettings.exe`（发布目录与生产目录 SHA256 一致）。
+
+### 9.3 复测
+
+- 8K VP9：改后 `HW=d3d11va`、`DROP=2`、`EST≈59.94`，流畅。
+- DV P5 / DV P8：`Applying auto profile: dolby-vision-copy`、`Using hardware decoding (d3d11va-copy)`，回退生效。
+- HDR10 4K（`Sony Bravia OLED 4K Demo.mp4`）：`HW=d3d11va`、`GAMMA=pq`，无异常。
+
+### 9.4 定为出厂默认并纳入 EXE 管理
+
+用户拍板「把现在的值重新定义成默认值」，按完整出厂态处理，不只是改一行 `hwdec`：
+
+- `Models/SettingsDraft.cs`：`HwdecIndex` 出厂 3（`d3d11va`）、`LoadFrom` 缺键兜底 `d3d11va`；标签改成「d3d11va（推荐·零拷贝）」/「auto-copy（杜比视界兼容）」。
+- `Assets/dolby-vision.conf` 新增并作为内嵌资源（`LogicalName=MpvSettings.dolby-vision.conf`）：恢复默认 / 导入都从 EXE 重写，避免只改 `hwdec` 把 DV P5 搞黑屏。
+- `Services/ConfigLocator.cs` 加 `DolbyVisionConf`；`Services/BackupService.cs` 受管文件 11 → 12，备份/迁移带上兜底文件。
+- `Services/DefaultProfile.cs`：`EnsureFixedAssets` 增加 dolby 整文件重写 + `include=~~/dolby-vision.conf` 只补缺（照 cover-art 的规则）。
+- 验证基准 `_verify/stage2_verify.py` 同步：baseline `HwdecIndex=3`、变异值改 `d3d11va-copy`（`auto-copy` 已在预设内）、自定义索引 6；顺带修两条历史遗留断言（con=6 才是 0.8 档；`mode=tonemap` 时色调档位按设计强制归 0）。
+- **三处 EXE 同版本**：`publish/`、`C:\Users\Administrator\MyMPC\MediaPlayer\mpv\`、`D:\MyMPC_CG_x64\12.mpv\` MD5 均 `616aba3bf5da7bf8b1e3e002d50da9ed`。
+- **模板同步**：`12.mpv\portable_config\mpv.conf` 写 `hwdec=d3d11va` + dolby include，新增 `dolby-vision.conf`；字幕字体保留跨机器静态默认（微软雅黑/48），由 `--default` 在本机探测后升级成 STKaiti/52，与生产态一致。
+- 复验：`stage2_verify.py` 94 项全部通过；`--default --dry-run` 在生产目录只提示 cover-art.conf 整文件重写（版本历史遗留），不再产生任何硬解键改动。

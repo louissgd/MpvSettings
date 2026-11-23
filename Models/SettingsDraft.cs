@@ -42,8 +42,10 @@ public sealed class SettingsDraft : ObservableObject
     // internal：阶段 ③ 的 WritePlanBuilder 把下拉索引映射回写盘值时复用同一份表，
     // 避免反推与写入各存一份导致漂移。
     internal static readonly string[] HwdecValues = { "auto-copy", "auto-safe", "auto", "d3d11va", "nvdec", "no" };
+    // 2026-11-24：默认改 d3d11va 零拷贝。auto-copy 读回显存再上传，8K60 VP9 实测 8 秒丢 363 帧；
+    // 杜比视界不能走零拷贝（P5 黑屏），由 portable_config/dolby-vision.conf 的 auto-profile 单独回退。
     internal static readonly string[] HwdecLabels =
-        { "auto-copy（推荐·杜比视界/HDR）", "auto-safe（零拷贝）", "auto", "d3d11va", "nvdec", "no（纯软解）" };
+        { "auto-copy（杜比视界兼容）", "auto-safe（零拷贝）", "auto", "d3d11va（推荐·零拷贝）", "nvdec", "no（纯软解）" };
     internal static readonly string[] HdrModeLabels = { "直通显示器（默认）", "HDR 转 SDR" };
     // 2026-11-19 定稿：去掉 0.5 档，0.6=纯 inverse(con0)。峰值 2000nits / DisplayHDR 1400 实测、HDR10/DV 通用。
     internal static readonly string[] ToneLabels = { "关闭（默认）", "0.6", "0.8", "1.0" };
@@ -564,7 +566,7 @@ public sealed class SettingsDraft : ObservableObject
         RefreshReadOnly(s);
 
         // ---- 页 A ----
-        ResolveCombo(HwdecValues, HwdecLabels, m.Get("hwdec", "auto-copy"),
+        ResolveCombo(HwdecValues, HwdecLabels, m.Get("hwdec", "d3d11va"),
             v => HwdecOptions = v, v => HwdecCustom = v, v => HwdecIndex = v);
         Deinterlace = ParseBool(m.Get("deinterlace", "yes"), true);
         LoopFile = m.Get("loop-file", "inf") == "inf";
@@ -741,7 +743,7 @@ public sealed class SettingsDraft : ObservableObject
 
     private void SetPlaybackDefaults()
     {
-        HwdecOptions = HwdecLabels; HwdecCustom = false; HwdecIndex = 0;
+        HwdecOptions = HwdecLabels; HwdecCustom = false; HwdecIndex = 3; // d3d11va 零拷贝
         Deinterlace = true; LoopFile = true; SavePosition = false;
         SubsMatchOsLanguage = true; SubsFallbackForced = false; SubAutoReload = true; OsdProgress = true;
         SubFont = "Microsoft YaHei"; SubColor = "#FFFFFFFF";

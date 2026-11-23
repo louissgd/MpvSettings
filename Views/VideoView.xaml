@@ -12,7 +12,7 @@
                               SelectedIndex="{Binding HdrModeDisplayIndex, Mode=TwoWay}"
                               IsEnabled="{Binding HdrModeInteractive}" />
                 </controls:OptionRow>
-                <controls:OptionRow Title="色调增强档位" Description="三档色调增强预设（0.6/0.8/1.0），在峰值 2000nits / DisplayHDR 1400 显示器上人眼实测标定，支持杜比视界Profile4、5、7、8 (其他Profile未测试)；HDR 转 SDR 时本项自动置灰并关闭（两者互斥）；当前组合不在预设里时显示「自定义」，原设置不会被覆盖">
+                <controls:OptionRow Title="色调增强档位" Description="三档色调增强预设（0.6/0.8/1.0），在峰值 2000nits / DisplayHDR 1400 显示器上人眼实测标定，支持杜比视界Profile5、7、8 (其他Profile未测试)；HDR 转 SDR 时本项自动置灰并关闭（两者互斥）；当前组合不在预设里时显示「自定义」，原设置不会被覆盖">
                     <ComboBox Style="{StaticResource DarkComboBox}"
                               ItemsSource="{Binding ToneOptions}"
                               SelectedIndex="{Binding ToneIndex, Mode=TwoWay}"

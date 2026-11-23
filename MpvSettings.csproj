@@ -32,6 +32,9 @@
          之前它们只存在于生产目录，装一次就再也回不去了。 -->
     <EmbeddedResource Include="Assets\context_menu.conf" LogicalName="MpvSettings.context_menu.conf" />
     <EmbeddedResource Include="Assets\mpv-settings.lua" LogicalName="MpvSettings.mpv-settings.lua" />
+    <!-- 8K60 零拷贝默认配套的杜比视界回拷兜底。恢复默认 / 导入都要把它写回，
+         否则只改 mpv.conf 的 hwdec 会让 P5 黑屏。 -->
+    <EmbeddedResource Include="Assets\dolby-vision.conf" LogicalName="MpvSettings.dolby-vision.conf" />
   </ItemGroup>
 
 </Project>

@@ -33,13 +33,13 @@ public static class BackupService
     private const string PrefKey = @"Software\MyMPC\MpvSettings";
     private const string ManifestFile = "manifest.json";
 
-    /// <summary>11 个受管文件（相对 portable_config）。生产目录里其余文件一律不碰。</summary>
+    /// <summary>12 个受管文件（相对 portable_config）。生产目录里其余文件一律不碰。</summary>
     public static readonly string[] ManagedFiles =
     {
         // A 类：共享文件，只按 diff 写受管键
         "mpv.conf", "input.conf", "menu.conf",
         // B 类：EXE 独占生成（备份里的原文只用于审计 / 人工比对）
-        "cover-art.conf", "audio-info.conf",
+        "cover-art.conf", "audio-info.conf", "dolby-vision.conf",
         "script-opts\\hdr-autoswitch.conf", "script-opts\\MyMPC.conf",
         "script-opts\\fit90.conf", "script-opts\\context_menu.conf",
         "scripts\\MyMPC_ui.lua", "scripts\\mpv-settings.lua",

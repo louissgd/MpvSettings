@@ -29,6 +29,7 @@ public static class DefaultProfile
     private const string ContextMenuLabel = "script-opts\\context_menu.conf";
     private const string MenuLuaLabel = "scripts\\mpv-settings.lua";
     private const string MenuLabel = "menu.conf";
+    private const string DolbyLabel = "dolby-vision.conf";
 
     /// <summary>出厂草稿。ResetAll 会把页 E 也刷成「本包发行时的 10 行」。</summary>
     public static SettingsDraft DefaultDraft()
@@ -93,7 +94,11 @@ public static class DefaultProfile
     /// 「定版资产」：没有对应控件、但每台机器都必须是这一份的东西。
     /// 恢复默认与导入都调用它——导入不能把别的机器上的旧脚本 / 被改坏的配色带过来。
     /// 五条 osd 配色 + load-context-menu + HDR 直通定版键写进 mpv.conf；
-    /// 两个独占文件从 EXE 内嵌资源重写；menu.conf 只补「选项(&O)」一行（用户自己加的条目不动）。
+    /// 三个独占文件从 EXE 内嵌资源重写；menu.conf 只补「选项(&O)」一行（用户自己加的条目不动）。
+    ///
+    /// 2026-11-24：dolby-vision.conf 进这套定版资产。默认硬解改 d3d11va 零拷贝后，
+    /// 这个文件是 DV 片源不黑屏的唯一兜底——恢复默认 / 导入漏掉它，等于把 P5 搞坏。
+    /// include 行按 cover-art 同样的「只补缺」规则处理。
     /// </summary>
     public static void EnsureFixedAssets(WritePlan plan, ConfigSnapshot s)
     {
@@ -101,7 +106,26 @@ public static class DefaultProfile
         AddHdrFixedKeys(plan, s);
         AddWholeFile(plan, ContextMenuLabel, s.Locator.ContextMenuConf, Resource("MpvSettings.context_menu.conf"));
         AddWholeFile(plan, MenuLuaLabel, s.Locator.MpvSettingsLua, Resource("MpvSettings.mpv-settings.lua"));
+        AddWholeFile(plan, DolbyLabel, s.Locator.DolbyVisionConf, Resource("MpvSettings.dolby-vision.conf"));
+        EnsureDolbyInclude(plan, s);
         EnsureMenuEntry(plan, s);
+    }
+
+    /// <summary>include=~~/dolby-vision.conf 缺失时补回；已有则一行不动。</summary>
+    private static void EnsureDolbyInclude(WritePlan plan, ConfigSnapshot s)
+    {
+        if (s.Mpv.HasInclude("dolby-vision.conf")) return;
+        var file = plan.For(MpvLabel, s.Locator.MpvConf);
+        if (file.Changes.Any(c => string.Equals(c.Key, "include", StringComparison.OrdinalIgnoreCase) &&
+                                  c.To == "~~/dolby-vision.conf")) return;
+        file.Changes.Add(new KeyChange
+        {
+            Key = "include",
+            To = "~~/dolby-vision.conf",
+            Group = "杜比视界硬解兜底",
+            Append = true,
+            AppendOnly = true,
+        });
     }
 
     /// <summary>
