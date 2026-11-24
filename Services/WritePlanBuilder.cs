@@ -28,6 +28,8 @@ public static class WritePlanBuilder
     private const string MyMpcLabel = "script-opts\\MyMPC.conf";
     private const string FitLabel = "script-opts\\fit90.conf";
     private const string LuaLabel = "scripts\\MyMPC_ui.lua";
+    private const string ThumbLabel = "script-opts\\thumbnails.conf";
+    private const string ThumbLuaLabel = "scripts\\thumbnails.lua";
 
     /// <summary>单实例命名管道。必须与 MyMPC_ui.lua 的 pipe_name 默认值一致。</summary>
     private const string PipeName = "MyMPC_mpv";
@@ -452,7 +454,9 @@ public static class WritePlanBuilder
         // 与 cover-art 一样，放在其它键算完之后：要等这批改动算完，才知道「用户这次是不是真的在保存」。
         bool uiChanged = baseline.Changed(d, "NoArtUi", "FitRatio", "AllowMultiInstance", "SubAutoReload",
                                           "OsdProgress",
-                                          "RtxVsr", "RtxHdr", "RtxVsrLimitIndex", "RtxHdrPeakIndex");
+                                          "RtxVsr", "RtxHdr", "RtxVsrLimitIndex", "RtxHdrPeakIndex",
+                                          // 1.0.7：缩略图参数改动要触发 thumbnails.conf 重写。
+                                          "ThumbCols", "ThumbRows", "ThumbMaxWidth", "ThumbGap");
         // 前提不满足时开关在反推阶段已被归零，baseline 捕获到的就是归零值，diff 看不到
         // 「盘上 yes → 应该 no」这一步。这里直接比 MyMPC.conf 的现值：若静态前提不合格
         // 而盘上还写着 yes，即使 diff 为空也要重写，把残留的 yes 纠正成 no。
@@ -464,6 +468,7 @@ public static class WritePlanBuilder
             || (!d.RtxHdrEnabledForWrite && DiskOptYes("rtx_hdr"));
         uiChanged |= rtxStale;
         bool wiringMissing = !s.MyMpcOpts.Exists || !s.Fit90.Exists || !s.LuaExists
+                             || !s.Thumbnails.Exists || !s.Locator.ThumbnailsLuaFileExists
                              || (d.NoArtUi && (!s.AudioInfo.Exists || !m.HasInclude("audio-info.conf")))
                              || !m.Has("input-ipc-server");
         bool pendingChanges = plan.KeyCount > 0 || plan.Registry.HasChanges
@@ -493,6 +498,14 @@ public static class WritePlanBuilder
                          BuildFit90(ratio), "Alt+4 屏幕比例");
                 AddWhole(LuaLabel, s.Locator.MyMpcLua, s.LuaExists, s.LuaText,
                          LuaSource(), "脚本");
+
+                // 1.0.7：n*m 缩略图脚本 + 参数。mpv.exe 真实路径写进 conf，口径与 Assoc 一致。
+                AddWhole(ThumbLabel, s.Locator.ThumbnailsConf, s.Thumbnails.Exists, s.Thumbnails.RawText,
+                         BuildThumbnailsConf(d, s.Locator.MpvExe), "缩略图参数");
+                string thumbLuaOnDisk = s.Locator.ThumbnailsLuaFileExists
+                    ? File.ReadAllText(s.Locator.ThumbnailsLua, Encoding.UTF8) : null;
+                AddWhole(ThumbLuaLabel, s.Locator.ThumbnailsLua, s.Locator.ThumbnailsLuaFileExists, thumbLuaOnDisk,
+                         ThumbnailsLuaSource(), "缩略图脚本");
 
                 bool hasInclude = m.HasInclude("audio-info.conf");
                 if (d.NoArtUi && !hasInclude)
@@ -688,6 +701,40 @@ public static class WritePlanBuilder
     }
 
     private static string _lua;
+    private static string _thumbLua;
+
+    /// <summary>1.0.7：内嵌的 scripts\thumbnails.lua，整文件写回（同 MyMPC_ui.lua 手法）。</summary>
+    private static string ThumbnailsLuaSource()
+    {
+        if (_thumbLua is not null) return _thumbLua;
+        var asm = typeof(WritePlanBuilder).Assembly;
+        using var st = asm.GetManifestResourceStream("MpvSettings.thumbnails.lua")
+            ?? throw new InvalidOperationException("内嵌的 thumbnails.lua 丢失（打包问题），拒绝写空脚本");
+        using var sr = new StreamReader(st, Encoding.UTF8);
+        _thumbLua = sr.ReadToEnd().Replace("\r\n", "\n").TrimEnd('\n') + "\n";
+        return _thumbLua;
+    }
+
+    /// <summary>1.0.7：script-opts\thumbnails.conf。mpv.exe 路径由 ConfigLocator 探测写入。</summary>
+    private static string BuildThumbnailsConf(SettingsDraft d, string mpvExe)
+    {
+        string norm = (mpvExe ?? string.Empty).Replace("\\", "/");
+        var lines = new[]
+        {
+            "# 由 MPV 设置 EXE 管理，勿手工改动（改设置请用设置程序）",
+            "# n*m 缩略图：总宽上限反推单格宽，按视频显示比例算高（对齐 MPC-HC）",
+            "cols=" + Math.Max(1, Math.Min(8, d.ThumbCols)).ToString(CultureInfo.InvariantCulture),
+            "rows=" + Math.Max(1, Math.Min(8, d.ThumbRows)).ToString(CultureInfo.InvariantCulture),
+            "max_width=" + Math.Round(Math.Max(300, Math.Min(4000, d.ThumbMaxWidth))).ToString(CultureInfo.InvariantCulture),
+            "gap=" + Math.Max(0, Math.Min(20, d.ThumbGap)).ToString(CultureInfo.InvariantCulture),
+            "thumb_dir=",
+            "font=",
+            // 探测到的真实路径，口径与 Assoc 的 <App Paths 根>\MediaPlayer\mpv\mpv.exe 一致；
+            // 空时 Lua 回退 ~~/../mpv.exe。
+            "mpv_exe=" + norm,
+        };
+        return string.Join("\r\n", lines) + "\r\n";
+    }
 
     /// <summary>
     /// 内嵌的 scripts\MyMPC_ui.lua。整文件生成，不做 diff：它是 EXE 独占的脚本，

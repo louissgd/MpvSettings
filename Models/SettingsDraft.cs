@@ -104,7 +104,9 @@ public sealed class SettingsDraft : ObservableObject
     // 移植自 mpv-lazy/uosc 的 progress 视觉：窗口与全屏都显示一条贴顶细线 + 移动游标。
     // 默认开（本包出厂值）；缺键时按开处理，写盘显式补键。纯音频无封面时跳过（信息窗自带进度条）。
     private bool _osdProgress = true;
-    private bool _coverOriginal = true; private double _coverMax = 1200;
+    // 1.0.7：封面默认跟随窗口等比缩放（对齐 MPC-HC：拖边框改大小，封面同比变大变小）。
+    // mpv 侧 video-unscaled=no；旧默认 downscale-big 只缩不放，拖大窗口只多黑边。
+    private bool _coverOriginal = false; private double _coverMax = 1200;
     private bool _noArtUi = true; private double _fitRatio = 90; private bool _allowMultiInstance;
 
     // ---------------- 页 A · 字幕默认样式（弹窗「字幕样式」，只作用于 SRT 等纯文本） ----------------
@@ -176,6 +178,12 @@ public sealed class SettingsDraft : ObservableObject
     private int _shotFormatIndex; private bool _shotFormatCustom; private string[] _shotFormatOptions = FormatLabels;
     private int _shotDirIndex; private string _shotDirPath = string.Empty;
     private bool _highBitDepth;
+
+    // n*m 缩略图（1.0.7）：写 script-opts/thumbnails.conf，由 thumbnails.lua 执行。
+    // 总宽上限反推单格宽、按视频显示比例算高，对齐 MPC-HC 的缩略图行为。
+    private int _thumbCols = 3, _thumbRows = 3;
+    private double _thumbMaxWidth = 1200;
+    private int _thumbGap = 4;
 
     // ---------------- 页 E · 快捷键（阶段 ⑥，独立草稿树） ----------------
     public ShortcutDraft Shortcuts { get; } = new();
@@ -492,6 +500,38 @@ public sealed class SettingsDraft : ObservableObject
     public string ShotDirPath { get => _shotDirPath; set => Set(ref _shotDirPath, value); }
     public string[] ShotDirOptions => ShotDirLabels;
     public bool HighBitDepth { get => _highBitDepth; set => Set(ref _highBitDepth, value); }
+
+    // n*m 缩略图（1.0.7）
+    // 网格下拉 1–8：索引 0 = 1 列/行，依次类推。
+    internal static readonly string[] ThumbGridLabels =
+        { "1", "2", "3", "4", "5", "6", "7", "8" };
+    public string[] ThumbGridOptions => ThumbGridLabels;
+    public int ThumbColsIndex
+    {
+        get => Math.Max(0, Math.Min(7, _thumbCols - 1));
+        set { int v = Math.Max(1, Math.Min(8, value + 1)); Set(ref _thumbCols, v); }
+    }
+    public int ThumbRowsIndex
+    {
+        get => Math.Max(0, Math.Min(7, _thumbRows - 1));
+        set { int v = Math.Max(1, Math.Min(8, value + 1)); Set(ref _thumbRows, v); }
+    }
+    public int ThumbCols { get => _thumbCols; set => Set(ref _thumbCols, value); }
+    public int ThumbRows { get => _thumbRows; set => Set(ref _thumbRows, value); }
+    public double ThumbMaxWidth { get => _thumbMaxWidth; set => Set(ref _thumbMaxWidth, value); }
+    public int ThumbGap { get => _thumbGap; set => Set(ref _thumbGap, value); }
+
+    // TextBox 桥接：输入合法性由 WritePlanBuilder 落盘时钳制，这里只做无损显示。
+    public string ThumbMaxWidthText
+    {
+        get => _thumbMaxWidth.ToString("0", CultureInfo.InvariantCulture);
+        set { if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var v)) _thumbMaxWidth = v; }
+    }
+    public string ThumbGapText
+    {
+        get => _thumbGap.ToString(CultureInfo.InvariantCulture);
+        set { if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var v)) _thumbGap = v; }
+    }
     #endregion
 
     #region 只读状态
@@ -605,7 +645,8 @@ public sealed class SettingsDraft : ObservableObject
         SubProtectAss = sa is "no" or "";
 
         // cover-art.conf 不存在时按出厂默认；include 行缺失由阶段 ③ 补回，不代表开关关闭
-        string vu = c.Get("video-unscaled", "downscale-big");
+        // 1.0.7：出厂改为 no（封面随窗口等比缩放，对齐 MPC-HC），缺键按 no 处理。
+        string vu = c.Get("video-unscaled", "no");
         CoverOriginal = vu is "downscale-big" or "yes";
         CoverMax = SnapCover(c.Get("autofit-larger", "1200x1200"));
 
@@ -733,6 +774,13 @@ public sealed class SettingsDraft : ObservableObject
         HighBitDepth = ParseBool(m.Get("screenshot-high-bit-depth", "no"), false);
         ResolveShotDir(m.Get("screenshot-dir", ""), s.Locator.ConfigDir);
 
+        // n*m 缩略图（1.0.7）：从 thumbnails.conf 反推，缺键按出厂默认。
+        var th = s.Thumbnails;
+        ThumbCols = (int)Clamp(ParseDouble(th.Get("cols", "3"), 3), 1, 8);
+        ThumbRows = (int)Clamp(ParseDouble(th.Get("rows", "3"), 3), 1, 8);
+        ThumbMaxWidth = Clamp(ParseDouble(th.Get("max_width", "1200"), 1200), 300, 4000);
+        ThumbGap = (int)Clamp(ParseDouble(th.Get("gap", "4"), 4), 0, 20);
+
         // ---- 页 E ----
         Shortcuts.LoadFrom(s);
     }
@@ -768,7 +816,7 @@ public sealed class SettingsDraft : ObservableObject
         SubFontSize = 48; SubLineSpacing = 0; SubBold = false; SubItalic = false;
         SubOutlineSize = 1; SubShadowOffset = 0; SubMarginX = 19; SubMarginY = 34;
         SubProtectAss = true;
-        CoverOriginal = true; CoverMax = 1200;
+        CoverOriginal = false; CoverMax = 1200;
         NoArtUi = true; FitRatio = 90; AllowMultiInstance = false;
     }
 
@@ -800,6 +848,7 @@ public sealed class SettingsDraft : ObservableObject
         ShotFormatOptions = FormatLabels; ShotFormatCustom = false; ShotFormatIndex = 0;
         HighBitDepth = false;
         ShotDirPath = string.Empty; ShotDirIndex = 0;
+        ThumbCols = 3; ThumbRows = 3; ThumbMaxWidth = 1200; ThumbGap = 4;
     }
 
     // ==================== 辅助 ====================

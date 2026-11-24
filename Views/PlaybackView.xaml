@@ -56,7 +56,7 @@
                                     IsNote="True">
                     <TextBlock Text="已开启 · 默认" FontSize="12" Foreground="{StaticResource WeakTextBrush}" />
                 </controls:OptionRow>
-                <controls:OptionRow Title="封面按原始大小显示" Description="封面按原始大小显示，不放大也不缩小；只对纯音频封面生效">
+                <controls:OptionRow Title="封面按原始大小显示" Description="默认关闭：拖动窗口边框时封面等比缩放（对齐 MPC-HC）；开启后封面固定原始大小、拖大窗口只增加黑边">
                     <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding CoverOriginal, Mode=TwoWay}" />
                 </controls:OptionRow>
                 <controls:OptionRow Title="封面窗口上限" Description="纯音频封面窗口的最大尺寸，400 × 400 到 1600 × 1600，默认 1200 × 1200">
@@ -102,7 +102,7 @@
                 </controls:OptionRow>
                 <controls:OptionRow Title="其它窗口键都按视频分辨率" Description="双击打开视频 = 视频分辨率的 100%；Alt+` / Alt+1 / Alt+2 / Alt+3 = 视频分辨率的 25% / 50% / 100% / 200%。只有 Alt+4 以屏幕为基准"
                                     IsNote="True" />
-                <controls:OptionRow Title="Alt+4 不生效的情况" Description="纯音频信息窗没有画面；有封面音频走封面大小逻辑（封面只缩不放，撑大窗口只会多黑边），按了只提示"
+                <controls:OptionRow Title="倍率键不生效的情况" Description="纯音频信息窗没有画面；纯音频有封面时全部倍率键（Alt+` / 1 / 2 / 3 / 4）都屏蔽，只能拖动窗口边框调整大小，封面会等比缩放"
                                     IsNote="True">
                     <TextBlock Text="按 Alt+4 生效" FontSize="12"
                                Foreground="{StaticResource WeakTextBrush}" />

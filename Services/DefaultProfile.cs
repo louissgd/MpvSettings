@@ -104,9 +104,13 @@ public static class DefaultProfile
     {
         AddAppearanceKeys(plan, s);
         AddHdrFixedKeys(plan, s);
+        AddScreenshotFixedKeys(plan, s);
         AddWholeFile(plan, ContextMenuLabel, s.Locator.ContextMenuConf, Resource("MpvSettings.context_menu.conf"));
         AddWholeFile(plan, MenuLuaLabel, s.Locator.MpvSettingsLua, Resource("MpvSettings.mpv-settings.lua"));
         AddWholeFile(plan, DolbyLabel, s.Locator.DolbyVisionConf, Resource("MpvSettings.dolby-vision.conf"));
+        // 1.0.7：缩略图脚本走定版资产——恢复默认/导入都用 EXE 内嵌的最新版，
+        // 不让备份里的旧脚本把新功能带回去。conf 参数由 WritePlanBuilder 按草稿正常生成。
+        AddWholeFile(plan, "scripts\\thumbnails.lua", s.Locator.ThumbnailsLua, Resource("MpvSettings.thumbnails.lua"));
         EnsureDolbyInclude(plan, s);
         EnsureMenuEntry(plan, s);
     }
@@ -260,6 +264,36 @@ public static class DefaultProfile
                 Append = !m.Has("target-trc"),
             });
         }
+    }
+
+    /// <summary>
+    /// 截图崩溃定版键（2026-11-24，1.0.7）：
+    /// <c>sws-allow-zimg=no</c> 让 swscale 跳过 zimg 后端。zimg 主干
+    /// （release-3.0.6-253-g67e0603）在 HDR10 截图做色彩转换时，崩在
+    /// zimg::graph::GraphBuilder::impl::build_subgraph，退出码 0xC0000005。
+    /// 生产完整配置 A/B 实测：默认 6/12 崩，关 zimg 后 0/12（出图 1248）。
+    /// 该键没有对应控件，但恢复默认/导入必须归位——否则用户点一次恢复默认，
+    /// 崩溃就回来了。走定版键与 HDR 直通同一套机制。
+    /// </summary>
+    private static void AddScreenshotFixedKeys(WritePlan plan, ConfigSnapshot s)
+    {
+        const string Key = "sws-allow-zimg";
+        const string Value = "no";
+        var m = s.Mpv;
+        var file = plan.For(MpvLabel, s.Locator.MpvConf);
+
+        // 已有别的逻辑准备写这个键时不重复加（虽然目前没有控件会写它）。
+        if (file.Changes.Any(c => string.Equals(c.Key, Key, StringComparison.OrdinalIgnoreCase))) return;
+        if (m.Has(Key) && string.Equals(m.Get(Key), Value, StringComparison.Ordinal)) return;
+
+        file.Changes.Add(new KeyChange
+        {
+            Key = Key,
+            To = Value,
+            Group = "截图崩溃缓解",
+            From = m.Has(Key) ? m.Get(Key) : string.Empty,
+            Append = !m.Has(Key),
+        });
     }
 
     /// <summary>内容与盘上一致就什么都不做——恢复默认不制造无意义的写盘时间戳。</summary>

@@ -127,6 +127,8 @@ public sealed class ConfigSnapshot
     public ConfFile AudioInfo { get; }
     public ConfFile MyMpcOpts { get; }
     public ConfFile Fit90 { get; }
+    /// <summary>1.0.7：n*m 缩略图参数（script-opts/thumbnails.conf）。</summary>
+    public ConfFile Thumbnails { get; }
     public ConfFile Input { get; }
     public BassMaxSnapshot BassMax { get; }
 
@@ -145,6 +147,7 @@ public sealed class ConfigSnapshot
         AudioInfo = ConfFile.Load(loc.AudioInfoConf);
         MyMpcOpts = ConfFile.Load(loc.MyMpcOpts);
         Fit90 = ConfFile.Load(loc.Fit90Conf);
+        Thumbnails = ConfFile.Load(loc.ThumbnailsConf);
         Input = ConfFile.Load(loc.InputConf);   // 只取 Lines，阶段 ⑥ 再按 KEY command 解析
         LuaText = File.Exists(loc.MyMpcLua)
             ? Encoding.UTF8.GetString(File.ReadAllBytes(loc.MyMpcLua)).TrimEnd('\r', '\n')

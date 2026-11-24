@@ -30,6 +30,36 @@
             </StackPanel>
         </controls:SettingCard>
 
+        <controls:SettingCard Title="N×M 缩略图">
+            <StackPanel>
+                <controls:OptionRow Title="网格行列" Description="右键「截图 → 缩略图」生成 n*m 拼图，按全片时长均匀取帧">
+                    <StackPanel Orientation="Horizontal">
+                        <ComboBox Style="{StaticResource DarkComboBox}" MinWidth="72" Margin="0,0,10,0"
+                                  ItemsSource="{Binding ThumbGridOptions}" SelectedIndex="{Binding ThumbColsIndex, Mode=TwoWay}"
+                                  ToolTip="列数" />
+                        <TextBlock Text="×" Foreground="{StaticResource SubTextBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                        <ComboBox Style="{StaticResource DarkComboBox}" MinWidth="72"
+                                  ItemsSource="{Binding ThumbGridOptions}" SelectedIndex="{Binding ThumbRowsIndex, Mode=TwoWay}"
+                                  ToolTip="行数" />
+                    </StackPanel>
+                </controls:OptionRow>
+                <controls:OptionRow Title="总宽度上限" Description="拼图总宽度像素上限；单格大小按视频比例和间距自动计算（默认 1200）">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBox Style="{StaticResource DarkTextBox}" Width="90"
+                                 Text="{Binding ThumbMaxWidthText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Text="px" Foreground="{StaticResource SubTextBrush}" VerticalAlignment="Center" Margin="6,0,0,0" />
+                    </StackPanel>
+                </controls:OptionRow>
+                <controls:OptionRow Title="缩略图间距" Description="各小图之间的间隔像素（默认 4）">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBox Style="{StaticResource DarkTextBox}" Width="90"
+                                 Text="{Binding ThumbGapText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Text="px" Foreground="{StaticResource SubTextBrush}" VerticalAlignment="Center" Margin="6,0,0,0" />
+                    </StackPanel>
+                </controls:OptionRow>
+            </StackPanel>
+        </controls:SettingCard>
+
         <controls:SettingCard Title="动作">
             <StackPanel>
                 <controls:OptionRow Title="诊断：打开无配置的 MPV"

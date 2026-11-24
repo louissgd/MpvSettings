@@ -12,10 +12,10 @@
     <SelfContained>false</SelfContained>
     <AssemblyName>MpvSettings</AssemblyName>
     <RootNamespace>MpvSettings</RootNamespace>
-    <Version>1.0.6</Version>
-    <AssemblyVersion>1.0.6.0</AssemblyVersion>
-    <FileVersion>1.0.6.0</FileVersion>
-    <InformationalVersion>1.0.6</InformationalVersion>
+    <Version>1.0.7</Version>
+    <AssemblyVersion>1.0.7.0</AssemblyVersion>
+    <FileVersion>1.0.7.0</FileVersion>
+    <InformationalVersion>1.0.7</InformationalVersion>
     <ApplicationIcon>Assets\MpvSettings.ico</ApplicationIcon>
   </PropertyGroup>
 
@@ -35,6 +35,8 @@
     <!-- 8K60 零拷贝默认配套的杜比视界回拷兜底。恢复默认 / 导入都要把它写回，
          否则只改 mpv.conf 的 hwdec 会让 P5 黑屏。 -->
     <EmbeddedResource Include="Assets\dolby-vision.conf" LogicalName="MpvSettings.dolby-vision.conf" />
+    <!-- 1.0.7：n*m 缩略图脚本，作为定版资产从 EXE 内嵌资源写回（恢复默认/导入都要用最新脚本）。 -->
+    <EmbeddedResource Include="Assets\thumbnails.lua" LogicalName="MpvSettings.thumbnails.lua" />
   </ItemGroup>
 
 </Project>

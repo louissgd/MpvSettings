@@ -47,6 +47,13 @@ public sealed class ConfigLocator
     public string MyMpcOpts => Join("script-opts", "MyMPC.conf");
     public string Fit90Conf => Join("script-opts", "fit90.conf");
 
+    /// <summary>1.0.7：n*m 缩略图参数（行列/总宽上限/间距/mpv.exe 路径），由 EXE 独占生成。</summary>
+    public string ThumbnailsConf => Join("script-opts", "thumbnails.conf");
+
+    /// <summary>1.0.7：缩略图 Lua 脚本，作为定版资产从 EXE 内嵌资源写回。</summary>
+    public string ThumbnailsLua => Join("scripts", "thumbnails.lua");
+    public bool ThumbnailsLuaFileExists => File.Exists(ThumbnailsLua);
+
     /// <summary>阶段 ⑧b 起由 EXE 独占生成的右键菜单外观（OSD 菜单配色）。</summary>
     public string ContextMenuConf => Join("script-opts", "context_menu.conf");
 

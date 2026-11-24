@@ -120,12 +120,14 @@ public static class ShortcutCatalog
                 D("e4.hdr-restore", "恢复系统 HDR", "script-message hdr-restore", "F8",
                   "原默认 F8 是「显示播放列表」，已被本包占用", ship: true),
                 D("e4.bassmax", "BassMax 增强 / 旁通", "af toggle bassmax", "Ctrl+b", ship: true),
-                D("e4.win25", "窗口 25%（视频分辨率）", "set window-scale 0.25", "Alt+`", ship: true),
-                D("e4.win50", "窗口 50%（视频分辨率）", "set window-scale 0.5", "Alt+1",
+                // 1.0.7：四个倍率键统一走 mpv-scale-key 脚本消息，纯音频封面时由 fit90.lua 拦截。
+                // 旧的裸 set window-scale 会绕过屏蔽，切勿改回。
+                D("e4.win25", "窗口 25%（视频分辨率）", "script-message mpv-scale-key 0.25", "Alt+`", ship: true),
+                D("e4.win50", "窗口 50%（视频分辨率）", "script-message mpv-scale-key 0.5", "Alt+1",
                   "原默认 Alt+1 是 100%，本包重排为 50%", ship: true),
-                D("e4.win100", "窗口 100%（视频分辨率）", "set window-scale 1.0", "Alt+2",
+                D("e4.win100", "窗口 100%（视频分辨率）", "script-message mpv-scale-key 1.0", "Alt+2",
                   "原默认 Alt+2 是 200%，本包重排为 100%；双击打开视频也是这个", ship: true),
-                D("e4.win200", "窗口 200%（视频分辨率）", "set window-scale 2.0", "Alt+3", ship: true),
+                D("e4.win200", "窗口 200%（视频分辨率）", "script-message mpv-scale-key 2.0", "Alt+3", ship: true),
                 D("e4.fit90", "窗口缩放到屏幕比例", "script-message mpv-fit90", "Alt+4",
                   "默认 90%（屏幕可用区域），比例在「播放」页更改", ship: true),
             }
