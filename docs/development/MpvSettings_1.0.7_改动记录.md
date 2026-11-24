@@ -1,7 +1,7 @@
 # MpvSettings 1.0.7 改动记录
 
 > 1.0.6 → 1.0.7。四项改动：**① 截图崩溃修复（关 zimg 后端）**；**② RTX 最低分辨率下限归入本版**（1.0.6 之后的提交，此前 tag 停在 1.0.6）；**③ 右键「截图 → N×M 缩略图」新功能**（纯 mpv lavfi 实现，参数在设置程序里改）；**④ 纯音频封面倍率键屏蔽 + 封面随窗口等比缩放（对齐 MPC-HC）**。
-> 记录日期：2026-11-24。产物 md5 `33c10ddf…`（publish / 12.mpv / 生产三处一致）。
+> 记录日期：2026-11-24。产物 md5 `82da1f0b…`（publish / 12.mpv / 生产三处一致）。
 
 ## 一、截图崩溃修复：sws-allow-zimg=no
 
@@ -84,9 +84,14 @@
 
 ## 六、验证
 
-- `dotnet publish -c Release -r win-x64`：0 错误 0 警告；EXE ProductVersion `1.0.7+9789476`，三处 md5 一致 `33c10ddf…`。
+- `dotnet publish -c Release -r win-x64`：0 错误 0 警告；EXE ProductVersion `1.0.7`，三处 md5 一致 `82da1f0b…`。
 - 生产 `--default --dry-run`：只报 cover-art.conf 整文件重写（换行符归一化，非实质差异），无异常写入。
 - 缩略图脚本：实机生成 `00000001.png` 成功（3×3 均匀取帧 + 时间戳 + banner + 水印），用户确认"成功了"，仅要求第二行字号加大（已 18→24，banner 高 56→72，标题 30→28 且加 max_glyphs=52）。
+- **封面实测**（`E:/Jorge González - Caliente.flac`，内嵌封面 1500×1500，上限 1200）：
+  - `current-tracks/video/image=true`、`autofit-larger=1200x1200`、`video-unscaled=no`、`keepaspect=yes`；
+  - `osd-dimensions` = **1200×1200** → 封面按 100% 开窗、超上限被压到 1200，第 1 点成立；
+  - 封面态下发 `mpv-scale-key 2.0` 与 `mpv-fit90` 后 osd 仍 1200×1200、`window-scale` 仍 1 → 倍率键被拦截；
+  - 对照普通 4K 视频：同样发 `mpv-scale-key 2.0`，`window-scale` 1→2 → 拦截是条件性的，不影响正常视频。
 
 ## 七、已知限制
 
