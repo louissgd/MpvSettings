@@ -55,7 +55,13 @@
 
 - `input.conf`：Alt+`/1/2/3` 从裸 `set window-scale` 改为 `script-message mpv-scale-key <值>`；`ShortcutCatalog.cs` 的默认绑定同步，避免设置程序"恢复默认"把裸命令写回去。
 - `fit90.lua` 新增 `mpv-scale-key` 处理器：检测到 `current-tracks/video/image == true`（纯音频有封面）时，Alt+`/1/2/3/4` **全部拦截**并提示"请拖动窗口边框调整大小（封面会等比缩放）"；无画面纯音频同样拦截。
-- `cover-art.conf`：`video-unscaled=downscale-big`（只缩不放）→ `no`（随窗口等比缩放），对齐 MPC-HC。`SettingsDraft.CoverOriginal` 出厂默认同步改 false；设置程序文案说明"默认关闭=跟随窗口等比缩放，开启=固定原始大小"。
+- `cover-art.conf`：`video-unscaled` 从 `downscale-big`（只缩不放）改为**恒为 `no`**（封面随窗口等比缩放）。`autofit-larger` 仍写上限，但只在「打开时按封面原始大小」开关开启时写入。
+- **封面默认口径（对齐 MPC-HC，用户四点要求）**：
+  1. 双击音频 → 窗口按封面 **100% 原始尺寸**打开，**默认开启**，超过「封面窗口上限」（自定义，默认 1200）才缩到上限；
+  2. 封面状态下 **所有倍率键不响应**（Alt+`/1/2/3/4 全拦截）；
+  3. **可以手拉窗口边框**，拖动时封面同步缩放、只保持比例（`keepaspect` 默认 yes）；
+  4. 不设窗口下限——mpv 0.42 无最小尺寸属性（`--list-options` 无 `window-min-*`），完全对齐 MPC-HC 可拖到 0×0。
+- `SettingsDraft.CoverOriginal` 出厂默认 **true**（反推依据改为 `autofit-larger` 是否存在，老配置不受影响）；开关只控制"是否受上限约束"，不再控制 `video-unscaled`。
 - 封面比例由 mpv `keepaspect`（默认 yes）保证；`keepaspect-window=no` 只管窗口矩形，不冲突。
 
 ## 五、落地清单
@@ -68,7 +74,7 @@
 | `Services/DefaultProfile.cs` | `AddScreenshotFixedKeys`（sws-allow-zimg=no 定版键）；缩略图脚本进定版资产 |
 | `Services/ConfigLocator.cs` | `ThumbnailsConf` / `ThumbnailsLua` / `ThumbnailsLuaFileExists` |
 | `Models/ConfigSnapshot.cs` | 装载 `Thumbnails` ConfFile |
-| `Models/SettingsDraft.cs` | 缩略图字段/属性/反推/默认值；`CoverOriginal` 默认 false |
+| `Models/SettingsDraft.cs` | 缩略图字段/属性/反推/默认值；`CoverOriginal` 默认 true，反推改看 `autofit-larger` |
 | `Services/WritePlanBuilder.cs` | `BuildThumbnailsConf` / `ThumbnailsLuaSource`；uiChanged 纳入 Thumb* |
 | `Models/ShortcutCatalog.cs` | 四个倍率键默认命令改 script-message |
 | `Views/ScreenshotView.xaml` | N×M 缩略图设置卡片 |

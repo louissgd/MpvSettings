@@ -104,9 +104,13 @@ public sealed class SettingsDraft : ObservableObject
     // 移植自 mpv-lazy/uosc 的 progress 视觉：窗口与全屏都显示一条贴顶细线 + 移动游标。
     // 默认开（本包出厂值）；缺键时按开处理，写盘显式补键。纯音频无封面时跳过（信息窗自带进度条）。
     private bool _osdProgress = true;
-    // 1.0.7：封面默认跟随窗口等比缩放（对齐 MPC-HC：拖边框改大小，封面同比变大变小）。
-    // mpv 侧 video-unscaled=no；旧默认 downscale-big 只缩不放，拖大窗口只多黑边。
-    private bool _coverOriginal = false; private double _coverMax = 1200;
+    // 1.0.8 起封面口径（对齐 MPC-HC）：
+    //   打开音频 → 窗口按封面原始尺寸（100%）打开，超过「封面窗口上限」才缩
+    //   拖动边框 → 封面随窗口等比缩放（video-unscaled=no），只保比例、不锁窗口比例
+    //   倍率键   → 封面状态下全部屏蔽（见 scripts/fit90.lua 的 scale_key）
+    //   mpv 无窗口最小尺寸属性，故不设下限，可拖到 0×0（与 MPC-HC 一致）
+    // 所以「封面原始大小」默认开启；关闭时窗口不再按封面尺寸自适应（走 mpv 全局默认）。
+    private bool _coverOriginal = true; private double _coverMax = 1200;
     private bool _noArtUi = true; private double _fitRatio = 90; private bool _allowMultiInstance;
 
     // ---------------- 页 A · 字幕默认样式（弹窗「字幕样式」，只作用于 SRT 等纯文本） ----------------
@@ -645,9 +649,9 @@ public sealed class SettingsDraft : ObservableObject
         SubProtectAss = sa is "no" or "";
 
         // cover-art.conf 不存在时按出厂默认；include 行缺失由阶段 ③ 补回，不代表开关关闭
-        // 1.0.7：出厂改为 no（封面随窗口等比缩放，对齐 MPC-HC），缺键按 no 处理。
-        string vu = c.Get("video-unscaled", "no");
-        CoverOriginal = vu is "downscale-big" or "yes";
+        // 1.0.8：video-unscaled 恒为 no（封面随窗口等比缩放），所以开关不能再从它反推，
+        //        改看 autofit-larger 在不在 —— 老配置（1.0.6/1.0.7）都有这行，仍判为开启。
+        CoverOriginal = c.Has("autofit-larger") || c.Has("autofit");
         CoverMax = SnapCover(c.Get("autofit-larger", "1200x1200"));
 
         // 外挂字幕热重载：只有显式写 sub_autoreload=no 才算关闭；缺键/文件未创建按出厂默认「开启」
@@ -816,7 +820,7 @@ public sealed class SettingsDraft : ObservableObject
         SubFontSize = 48; SubLineSpacing = 0; SubBold = false; SubItalic = false;
         SubOutlineSize = 1; SubShadowOffset = 0; SubMarginX = 19; SubMarginY = 34;
         SubProtectAss = true;
-        CoverOriginal = false; CoverMax = 1200;
+        CoverOriginal = true; CoverMax = 1200;
         NoArtUi = true; FitRatio = 90; AllowMultiInstance = false;
     }
 

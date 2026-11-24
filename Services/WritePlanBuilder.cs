@@ -617,19 +617,27 @@ public static class WritePlanBuilder
     /// <summary>
     /// cover-art.conf 的完整内容（EXE 独占，固定结构）。
     /// profile-cond 只认「当前视频轨本身是图」这一条：实测 not video / video-params==nil 在正常视频上也会误触发；
-    /// profile-restore=copy 保证从纯音频切到视频时把 video-unscaled 还原，不改视频播放行为。
+    /// profile-restore=copy 保证从纯音频切到视频时把封面相关键还原，不改视频播放行为。
+    ///
+    /// 1.0.8 口径（对齐 MPC-HC）：
+    ///   video-unscaled=no        封面随窗口等比缩放 —— 拖大窗口封面跟着变大，只保比例
+    ///   autofit-larger=上限      打开时窗口按封面原始尺寸（100%），超过上限才缩
+    /// 不设 autofit-smaller：mpv 没有窗口最小尺寸属性，完全对齐 MPC-HC 可拖到 0×0。
+    /// 「封面原始大小」开关关闭时，不写 autofit-larger：窗口不再按封面尺寸自适应。
     /// </summary>
     private static string BuildCoverArt(SettingsDraft d, int max, string nl)
     {
-        var lines = new[]
+        var lines = new List<string>
         {
             "# 由 MPV 设置 EXE 管理：纯音频封面显示，勿手工改动段落名",
             "[cover-art]",
             "profile-cond=p[\"current-tracks/video/image\"] == true",
             "profile-restore=copy",
-            "video-unscaled=" + (d.CoverOriginal ? "downscale-big" : "no"),
-            "autofit-larger=" + max + "x" + max,
+            // 旧值 downscale-big 只缩不放，拖大窗口只多黑边，已弃用（1.0.7 曾误用它）
+            "video-unscaled=no",
         };
+        if (d.CoverOriginal)
+            lines.Add("autofit-larger=" + max + "x" + max);
         return string.Join(nl, lines) + nl;
     }
 
