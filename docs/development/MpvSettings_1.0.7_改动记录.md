@@ -4,7 +4,7 @@
 >
 > 同日 22:47–23:10 又做了两轮修正并**并入 1.0.7、不升版**：**⑤ 封面默认值方向改回**（上一轮把 `CoverOriginal` 误改成 false）；**⑥ 缩略图 `--frames=1` 导致"提示成功但没文件"的真 bug**，顺带把右键菜单从三级压成二级。详见第五、六节。
 >
-> 记录日期：2026-11-24　｜　本机路径照实记录（根目录 `*.md` 已被 gitignore）
+> 记录日期：2026-11-24　｜　本页已脱敏：路径写作 `<安装根>` / `<工作区>`，测试素材不记片名
 
 ---
 
@@ -158,7 +158,7 @@ autofit-larger=<max>x<max>        # 仅开关开启时写：100% 开窗，超上
 
 ## 六、文件改动清单（本机真实路径）
 
-### 仓库 `D:\MyMPC_CG_x64\MpvSettings\`
+### 仓库根目录（MpvSettings 项目）
 
 | 文件 | 改动 |
 |---|---|
@@ -174,7 +174,7 @@ autofit-larger=<max>x<max>        # 仅开关开启时写：100% 开窗，超上
 | `Views/PlaybackView.xaml` | 封面两项文案、倍率键说明 |
 | `Assets/thumbnails.lua` | 新增（缩略图脚本，定版资产） |
 
-### 配置目录（`D:\MyMPC_CG_x64\12.mpv\portable_config\` 与 `C:\Users\Administrator\MyMPC\MediaPlayer\mpv\portable_config\`）
+### 配置目录（开发库 `12.mpv\portable_config\` 与安装根 `<安装根>\MediaPlayer\mpv\portable_config\` 两处）
 
 | 文件 | 改动 |
 |---|---|
@@ -196,7 +196,7 @@ autofit-larger=<max>x<max>        # 仅开关开启时写：100% 开窗，超上
 
 ### 7.2 封面
 
-测试文件 `E:/Jorge González - Caliente.flac`（内嵌封面 1500×1500，上限 1200）：
+测试文件：本地 FLAC（内嵌封面 1500×1500，上限 1200）：
 
 ```
 image=true  autofit-larger=1200x1200  video-unscaled=no  keepaspect=yes
@@ -212,11 +212,11 @@ osd-dimensions = 1200x1200
 | 测试片 | 规格 | 耗时 | 结果 |
 |---|---|---|---|
 | 4K AV1 片 | 长片刻 | **8.2 秒** | 一次通过 |
-| 4K DV 片（杜比视界 P8+HLG） | 影视飓风样片 | **17 秒**（重试 2 次） | 通过 |
-| `9-1-1.Nashville.S02E06` 4K HEVC HDR10 | 3×4 | 5–6 秒 | 通过 |
-| `Boyzone - Words` 4K HEVC | 3×4 / 4×3 各一次 | 约 6 秒 | 通过 |
+| 4K DV 片（杜比视界 P8+HLG） | 公开样片 | **17 秒**（重试 2 次） | 通过 |
+| 剧集 4K HEVC HDR10 | 3×4 | 5–6 秒 | 通过 |
+| 音乐 MV 4K HEVC | 3×4 / 4×3 各一次 | 约 6 秒 | 通过 |
 
-用户实机右键菜单同路径触发，产物落桌面，5–6 秒可接受。图面：12 格（3×4）完整、每格右下角时间码、标题单行完整不压水印、比例不变形。
+用户实机右键菜单同路径触发，产物落在输出目录，5–6 秒可接受。图面：12 格（3×4）完整、每格右下角时间码、标题单行完整不压水印、比例不变形。
 
 **配置热生效验证**：同一 mpv 进程内先按 `cols=3 rows=4` 生成一次，脚本外部把 conf 改成 `cols=4 rows=3` 再触发一次 —— 第二次直接产出 **4×3**，无需重启播放器（`reload_opts()`）。
 
@@ -233,7 +233,7 @@ osd-dimensions = 1200x1200
 
 ## 九、收尾修正：改设置后缩略图全灭（内嵌旧脚本覆盖）
 
-**现象**：生产环境首次实测成功（桌面两张图，5–6 秒）。随后在设置程序里调整缩略图行列 → 再触发就失败，表现像"行列被定死"。
+**现象**：生产环境首次实测成功（输出目录两张图，5–6 秒）。随后在设置程序里调整缩略图行列 → 再触发就失败，表现像"行列被定死"。
 
 **根因**：设置程序保存时会整文件写回 `portable_config\scripts\thumbnails.lua`（`AddWhole` + `ThumbnailsLuaSource()` 读内嵌资源，这是刻意设计，保证脚本与 EXE 同版本）。但生产 `MpvSettings.exe` 编译于 22:51，**内嵌的还是旧实现**（`--vo=image` + `--frames=1` 那版，8939 字节），而最终版脚本 23:51 才落盘（19170 字节）。于是用户一点"应用"，新脚本就被旧脚本覆盖回去 —— 旧版靠整片解码且 `--frames=1` 攒不满 tile，必然零产出。
 
@@ -249,11 +249,11 @@ osd-dimensions = 1200x1200
 
 - `12.mpv/portable_config/scripts/thumbnails.lua`
 - `MpvSettings/Assets/thumbnails.lua`
-- `C:\Users\Administrator\MyMPC\MediaPlayer\mpv\portable_config\scripts\thumbnails.lua`
+- `<安装根>\MediaPlayer\mpv\portable_config\scripts\thumbnails.lua`
 
 **复测**：3×4 → 12 格正常；同进程改 conf 为 4×3 再触发 → 输出 4×3 正常；标题完整、时间码齐全、比例不变形。
 
-> 教训：改脚本后必须重新 publish EXE，否则用户任何一次"应用设置"都会把生产脚本还原成 EXE 里的旧版。此点已写进 `更新计划总览.md` 的流程铁律。
+> 教训：改脚本后必须重新 publish EXE，否则用户任何一次"应用设置"都会把生产脚本还原成 EXE 里的旧版。此点已写进维护者的发版铁律。
 
 ### 9.1 文案清理（同日 00:10）
 

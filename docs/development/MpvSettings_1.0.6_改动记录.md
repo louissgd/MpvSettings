@@ -171,7 +171,7 @@ setting.exe 的 `HdrSupported = DetectHdrSupported()`（枚举活动显示器有
 - `Models/SettingsDraft.cs`：默认硬解改 `d3d11va`（`HwdecIndex=3`，`LoadFrom` 缺键兜底同步），标签改「auto-copy（杜比视界兼容）」/「d3d11va（推荐·零拷贝）」。
 - `Views/VideoView.xaml`：「色调增强档位」说明去掉杜比视界 Profile4，改为「支持杜比视界Profile5、7、8」。
 - `docs/功能说明.md` 同步硬解默认值说明。
-- `dotnet publish` 后把新 EXE 部署到 `C:\Users\Administrator\MyMPC\MediaPlayer\mpv\MpvSettings.exe`（发布目录与生产目录 SHA256 一致）。
+- `dotnet publish` 后把新 EXE 部署到 `<安装根>\MediaPlayer\mpv\MpvSettings.exe`（发布目录与生产目录 SHA256 一致）。
 
 ### 9.3 复测
 
@@ -188,6 +188,6 @@ setting.exe 的 `HdrSupported = DetectHdrSupported()`（枚举活动显示器有
 - `Services/ConfigLocator.cs` 加 `DolbyVisionConf`；`Services/BackupService.cs` 受管文件 11 → 12，备份/迁移带上兜底文件。
 - `Services/DefaultProfile.cs`：`EnsureFixedAssets` 增加 dolby 整文件重写 + `include=~~/dolby-vision.conf` 只补缺（照 cover-art 的规则）。
 - 验证基准 `_verify/stage2_verify.py` 同步：baseline `HwdecIndex=3`、变异值改 `d3d11va-copy`（`auto-copy` 已在预设内）、自定义索引 6；顺带修两条历史遗留断言（con=6 才是 0.8 档；`mode=tonemap` 时色调档位按设计强制归 0）。
-- **三处 EXE 同版本**：`publish/`、`C:\Users\Administrator\MyMPC\MediaPlayer\mpv\`、`D:\MyMPC_CG_x64\12.mpv\` MD5 均 `616aba3bf5da7bf8b1e3e002d50da9ed`。
+- **三处 EXE 同版本**：`publish/`、`<安装根>\MediaPlayer\mpv\`、`12.mpv\` MD5 均 `616aba3bf5da7bf8b1e3e002d50da9ed`。
 - **模板同步**：`12.mpv\portable_config\mpv.conf` 写 `hwdec=d3d11va` + dolby include，新增 `dolby-vision.conf`；字幕字体保留跨机器静态默认（微软雅黑/48），由 `--default` 在本机探测后升级成 STKaiti/52，与生产态一致。
 - 复验：`stage2_verify.py` 94 项全部通过；`--default --dry-run` 在生产目录只提示 cover-art.conf 整文件重写（版本历史遗留），不再产生任何硬解键改动。
