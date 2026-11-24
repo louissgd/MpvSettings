@@ -79,6 +79,14 @@ public sealed class SettingsDraft : ObservableObject
         "≤ 480p（1024×576）", "≤ 720p（1280×720）",
         "≤ 1080p（2048×1088）", "≤ 1440p（2560×1440）",
     };
+    // HDR 分辨率下限（1.0.7）：720x480 DVD 首次挂 nvidia-true-hdr 崩溃率 50%，
+    // 1920x1080 挂 446 次零崩（2026-11-24 A/B 实测，与 VSR 无关）。默认 720p。
+    internal static readonly string[] RtxMinResValues = { "off", "sd", "720p", "1080p", "1440p" };
+    internal static readonly string[] RtxMinResLabels =
+    {
+        "不限制（旧行为）", "≥ 576p（短边 576）", "≥ 720p（短边 720）",
+        "≥ 1080p（短边 1080）", "≥ 1440p（短边 1440）",
+    };
     internal static readonly int[] RtxHdrPeaks = { 400, 600, 800, 1000, 1200, 1400, 1600, 2000 };
     internal static readonly string[] RtxHdrPeakLabels =
     {
@@ -144,6 +152,7 @@ public sealed class SettingsDraft : ObservableObject
     // 在 SDR 桌面上强开会把 SDR 内容按 PQ 输出导致画面洗白（mpv#17800）。
     private bool _rtxVsr = true, _rtxHdr = true;
     private int _rtxVsrLimitIndex = 2;   // 1080p
+    private int _rtxMinResIndex = 2;     // 720p
     private int _rtxHdrPeakIndex = 3;    // 1000 nit
 
     // ---------------- 页 C · 音频 ----------------
@@ -313,16 +322,19 @@ public sealed class SettingsDraft : ObservableObject
     public bool RtxVsr
     {
         get => _rtxVsr;
-        set { if (Set(ref _rtxVsr, value)) OnPropertyChanged(nameof(RtxVsrLimitInteractive)); }
+        set { if (Set(ref _rtxVsr, value)) { OnPropertyChanged(nameof(RtxVsrLimitInteractive)); OnPropertyChanged(nameof(RtxMinResInteractive)); } }
     }
     /// <summary>RTX Video HDR（SDR→HDR）：默认开。NVIDIA 驱动只对 SDR 源生效，HDR 源一律跳过，可放心开；仍需 Windows HDR + NVIDIA App 侧启用。</summary>
     public bool RtxHdr
     {
         get => _rtxHdr;
-        set { if (Set(ref _rtxHdr, value)) OnPropertyChanged(nameof(RtxHdrPeakInteractive)); }
+        set { if (Set(ref _rtxHdr, value)) { OnPropertyChanged(nameof(RtxHdrPeakInteractive)); OnPropertyChanged(nameof(RtxMinResInteractive)); } }
     }
     public int RtxVsrLimitIndex { get => _rtxVsrLimitIndex; set => Set(ref _rtxVsrLimitIndex, value); }
     public string[] RtxVsrLimitOptions => RtxVsrLimitLabels;
+    /// <summary>RTX HDR 分辨率下限：短边低于档位就跳过 HDR，避开小尺寸帧的已知崩溃路径。</summary>
+    public int RtxMinResIndex { get => _rtxMinResIndex; set => Set(ref _rtxMinResIndex, value); }
+    public string[] RtxMinResOptions => RtxMinResLabels;
     public int RtxHdrPeakIndex { get => _rtxHdrPeakIndex; set => Set(ref _rtxHdrPeakIndex, value); }
     public string[] RtxHdrPeakOptions => RtxHdrPeakLabels;
 
@@ -341,6 +353,7 @@ public sealed class SettingsDraft : ObservableObject
         OnPropertyChanged(nameof(RtxHdrInteractive));
         OnPropertyChanged(nameof(RtxVsrLimitInteractive));
         OnPropertyChanged(nameof(RtxHdrPeakInteractive));
+        OnPropertyChanged(nameof(RtxMinResInteractive));
         OnPropertyChanged(nameof(RtxVsrStatusText));
         OnPropertyChanged(nameof(RtxHdrStatusText));
     }
@@ -381,6 +394,8 @@ public sealed class SettingsDraft : ObservableObject
 
     /// <summary>VSR 上限下拉是否可交互：开关开着且前提满足。</summary>
     public bool RtxVsrLimitInteractive => RtxVsr && RtxVsrEligible;
+    /// <summary>RTX 分辨率下限是否可交互：VSR/HDR 任一可用即可（下限同时管两路）。</summary>
+    public bool RtxMinResInteractive => RtxVsrEligible || (RtxHdr && RtxHdrInteractive);
     /// <summary>RTX HDR 峰值下拉是否可交互：开关开着且前提满足。</summary>
     public bool RtxHdrPeakInteractive => RtxHdr && RtxHdrInteractive;
 
@@ -665,6 +680,9 @@ public sealed class SettingsDraft : ObservableObject
         int vlim = Array.FindIndex(RtxVsrLimitValues,
             v => string.Equals(v, o.Get("rtx_vsr_limit", "1080p"), StringComparison.OrdinalIgnoreCase));
         RtxVsrLimitIndex = vlim >= 0 ? vlim : 2;
+        int hmin = Array.FindIndex(RtxMinResValues,
+            v => string.Equals(v, o.Get("rtx_min_res", "720p"), StringComparison.OrdinalIgnoreCase));
+        RtxMinResIndex = hmin >= 0 ? hmin : 2;
         // 峰值必须在预设表内才认。先按原值查表，查不到才允许 clamp 到表内（如 750→800），
         // 但远超范围的（99999）直接回默认，不吸附到 2000 nit 的极值。
         string peakRaw = o.Get("rtx_hdr_peak", "1000");
@@ -761,7 +779,7 @@ public sealed class SettingsDraft : ObservableObject
         VideoLevelsOptions = LevelsLabels; VideoLevelsCustom = false; VideoLevelsIndex = 0;
         OnlyFullscreen = false;
         KeepWindowAspect = false;
-        RtxVsr = true; RtxHdr = true; RtxVsrLimitIndex = 2; RtxHdrPeakIndex = 3;
+        RtxVsr = true; RtxHdr = true; RtxVsrLimitIndex = 2; RtxMinResIndex = 2; RtxHdrPeakIndex = 3;
         _hdrRawMode = "passthrough";
         OnPropertyChanged(nameof(ToneLockedBySdr));
         OnPropertyChanged(nameof(RtxHwdecHint));

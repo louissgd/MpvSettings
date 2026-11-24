@@ -33,6 +33,12 @@
 
         <controls:SettingCard Title="NVIDIA RTX 视频增强">
             <StackPanel>
+                <controls:OptionRow Title="RTX 最低分辨率" Description="短边低于所选档位时 VSR 和 RTX HDR 都不挂。默认 ≥ 720p：DVD/VCD（720×480/576）完全不碰 d3d11vpp，避开小尺寸帧初始化时的偶发崩溃（实测崩溃率 50%，1080p 挂 446 次零崩）；1080p 及以上不受影响。选「不限制」恢复旧行为">
+                    <ComboBox Style="{StaticResource DarkComboBox}"
+                              ItemsSource="{Binding RtxMinResOptions}"
+                              SelectedIndex="{Binding RtxMinResIndex, Mode=TwoWay}"
+                              IsEnabled="{Binding RtxMinResInteractive}" />
+                </controls:OptionRow>
                 <controls:OptionRow Title="RTX 超分辨率（VSR）" Description="默认打开。低分辨率片源由 NVIDIA 驱动做 AI 放大；超过下方上限、或画面以 100% / 更小尺寸显示（无放大）时自动跳过——与 MPC Video Renderer 策略一致：放大窗口才生效，NV App 里「超分辨率」指示灯才会亮。需 RTX 20 系以上显卡并在 NVIDIA App 里开启「超分辨率」。改动需重启播放器">
                     <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding RtxVsr, Mode=TwoWay}"
                               IsEnabled="{Binding RtxVsrInteractive}" />
@@ -60,7 +66,7 @@
                 <controls:OptionRow Title="运行前提" Description="硬件解码不限（实测 d3d11va / auto-copy / 软解均可）；静态前提（NVIDIA App 总开关 + 硬件支持）不满足时开关置灰并写入 no。Windows HDR 是动态状态（Win+Alt+B）：关时只置灰不写 no，开了即刻生效。VSR 阈值与 MPC Video Renderer 一致"
                                     IsNote="True" />
                 <controls:OptionRow Title="已知问题 · 等上游修（2026-11-21）"
-                                    Description="播 SDR 片时 RTX HDR 偶发崩溃（截图时更易触发）：根因是 d3d11vpp 动态挂载 nvidia-true-hdr 的空指针，非本程序问题；hint=yes/auto/no 在 HDR 挂上时崩溃率无差别，改 hint 无法规避。RTX HDR 保留、接受偶发，等 mpv 上游修复（issue #17800）。播放约 2 秒后才变亮是在等输出色彩协商，MPCVR 为渲染器内建、无此延迟"
+                                    Description="RTX 偶发崩溃（截图更易触发）是 d3d11vpp 在 720×480 小帧上初始化的空指针，非本程序问题。实测纯 VSR 10/20、纯 HDR 11/20、共挂 10/20、全关 0/20；1920×1080 挂 446 次零崩。默认已用「RTX 最低分辨率」跳过 DVD/VCD。hint=yes/auto/no 无差别。播放约 2 秒后才变亮是在等输出色彩协商，MPCVR 为渲染器内建、无此延迟"
                                     IsNote="True" />
             </StackPanel>
         </controls:SettingCard>

@@ -647,6 +647,8 @@ public static class WritePlanBuilder
     {
         int vlim = d.RtxVsrLimitIndex >= 0 && d.RtxVsrLimitIndex < SettingsDraft.RtxVsrLimitValues.Length
             ? d.RtxVsrLimitIndex : 2;
+        int hmin = d.RtxMinResIndex >= 0 && d.RtxMinResIndex < SettingsDraft.RtxMinResValues.Length
+            ? d.RtxMinResIndex : 2;
         int peakIdx = d.RtxHdrPeakIndex >= 0 && d.RtxHdrPeakIndex < SettingsDraft.RtxHdrPeaks.Length
             ? d.RtxHdrPeakIndex : 3;
         var lines = new[]
@@ -663,6 +665,7 @@ public static class WritePlanBuilder
             "rtx_vsr=" + YesNo(d.RtxVsrEnabledForWrite),
             "rtx_hdr=" + YesNo(d.RtxHdrEnabledForWrite),
             "rtx_vsr_limit=" + SettingsDraft.RtxVsrLimitValues[vlim],
+            "rtx_min_res=" + SettingsDraft.RtxMinResValues[hmin],
             "rtx_hdr_peak=" + SettingsDraft.RtxHdrPeaks[peakIdx].ToString(CultureInfo.InvariantCulture),
             "pipe_name=" + PipeName,
         };
