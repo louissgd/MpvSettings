@@ -59,7 +59,7 @@
                 <controls:OptionRow Title="打开时按封面原始大小" Description="默认开启：窗口按封面原始尺寸（100%）打开，超过「窗口上限」则缩到上限；拖动窗口边框时封面等比缩放、只保持比例。关闭则不受上限约束，超大封面会撑出屏幕">
                     <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding CoverOriginal, Mode=TwoWay}" />
                 </controls:OptionRow>
-                <controls:OptionRow Title="封面窗口上限" Description="纯音频封面窗口的尺寸上限，400 × 400 到 1600 × 1600，默认 1200 × 1200；不设下限，可拖到任意小（对齐 MPC-HC）">
+                <controls:OptionRow Title="封面窗口上限" Description="纯音频封面窗口的尺寸上限，400 × 400 到 1600 × 1600，默认 1200 × 1200；不设下限，可拖到任意小">
                     <controls:ValueSlider Value="{Binding CoverMax, Mode=TwoWay}" Minimum="400" Maximum="1600"
                                           SmallChange="100" LargeChange="200" TickFrequency="100"
                                           Format="{}{0:0} × {0:0}" />

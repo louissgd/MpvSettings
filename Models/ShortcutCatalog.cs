@@ -91,7 +91,7 @@ public static class ShortcutCatalog
                 D("e2.stats", "播放统计 · 临时（Tab）", "script-binding stats/display-stats", "TAB",
                   "本包发行键，同 PotPlayer；mpv 原默认 i 仍可用", ship: true),
                 D("e2.stats-toggle", "播放统计 · 常显切换（Ctrl+j）", "script-binding stats/display-stats-toggle", "Ctrl+j",
-                  "本包发行键，同 MPC-HC / MPC-BE；mpv 原默认 I 仍可用", ship: true),
+                  "本包发行键；mpv 原默认 I 仍可用", ship: true),
             }
         },
         new ShortcutGroupDef

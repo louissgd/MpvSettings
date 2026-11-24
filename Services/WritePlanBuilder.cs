@@ -730,7 +730,7 @@ public static class WritePlanBuilder
         var lines = new[]
         {
             "# 由 MPV 设置 EXE 管理，勿手工改动（改设置请用设置程序）",
-            "# n*m 缩略图：总宽上限反推单格宽，按视频显示比例算高（对齐 MPC-HC）",
+            "# n*m 缩略图：总宽上限反推单格宽，按视频显示比例算高",
             "cols=" + Math.Max(1, Math.Min(8, d.ThumbCols)).ToString(CultureInfo.InvariantCulture),
             "rows=" + Math.Max(1, Math.Min(8, d.ThumbRows)).ToString(CultureInfo.InvariantCulture),
             "max_width=" + Math.Round(Math.Max(300, Math.Min(4000, d.ThumbMaxWidth))).ToString(CultureInfo.InvariantCulture),
