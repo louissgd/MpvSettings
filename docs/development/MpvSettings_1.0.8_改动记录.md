@@ -198,7 +198,7 @@ mpv 构建日志：`_bak_108_20261126_2305/mpv_rebuild.log`。
 
 `pan=stereo|FL=FL+...` 是按 5.1(side) 写死的，换 7.1 / 2.0 就得改字符串。
 `out_chlayout` 走 swresample 的标准下混矩阵，布局无关；实测 5.1 与纯 2.0 片都能进：
-生产 mpv 播 `G:/音乐/DTS/Harry Gregson-Williams - Unstoppable (End Title).DTS-HDMA.mka`
+生产 mpv 播 `<测试片名>.DTS-HDMA.mka`
 （5.1/48kHz）与自造 2.0 tone，`--msg-level=af=v` 都给出
 `[bassmax] drive=1.00 ... sr=48000 ch=2 groups=1`，AO 仍 stereo 2ch，无失败。
 `aresample=out_channel_layout=stereo` / `ch_layout=` / `ochl=` 在本构建的 libavfilter 12.12
@@ -209,7 +209,7 @@ mpv 构建日志：`_bak_108_20261126_2305/mpv_rebuild.log`。
 | 文件 | 改了什么 |
 |---|---|
 | `<项目根>/00.Core/setting.ahk` | 新增 `MpvAfIsDownmix` / `MpvAfSplit` / `MpvAfSetDownmix`；`MpvSyncGlobal` 的 Button7 分支在写 audio-channels 后调 `MpvAfSetDownmix(btnState)`；配置说明块补一段。版本号仍 3.2。 |
-| `<项目根>/00.Core/setting.exe` | 由上面重编（Ahk2Exe：`/base` + `/icon` + `/silent`，见 `MPV设置EXE_V1_参数与布局规划.md` §6.14）；部署到 `<用户目录>/MyMPC/setting.exe`。 |
+| `<项目根>/00.Core/setting.exe` | 由上面重编（Ahk2Exe：`/base` + `/icon` + `/silent`，见 `MPV设置EXE_V1_参数与布局规划.md` §6.14）；部署到 `<安装根>/setting.exe`。 |
 | `MpvSettings\Services\AfChain.cs` | 加 `DownmixFilter` / `ContainsDownmix` / `IsDownmix`；`Merge` 加可选 `downmix` 参数，先摘旧节再按位置插回。 |
 | `MpvSettings\Services\WritePlanBuilder.cs` | 页 C 算出写盘后真正生效的 `effectiveChannels`（被自定义态拦住时取盘上值），传给 `EnsureAfChain(plan, s, wantDownmix)`；Transform 同步。 |
 | `MpvSettings\Views\AudioView.xaml` | 「声道输出」与「链路顺序」两条描述改成新语义（选 stereo 才下混）。 |
@@ -291,3 +291,33 @@ PASS
 新悬浮提示字符串 `双击/中键 菜单` 在 exe 中命中 1 次，旧 `双击 设置` 为 0。
 三处 exe md5 一致 `d420a49abeb804b41f3fb4a7d86ff010`（构建输出 / 生产 / dev）。
 托盘 exe 自身版本资源未动（1.0.0.0）。备份在 `<项目根>\_bak_tray_20261126_2358\`。
+
+---
+
+## 十、增补（2026-11-27）：bassmax_decoder 补齐
+
+> 用户反馈：MPC-BE 播放时设置面板红框显示「未播放」，且 decoder 托盘没有设置入口。
+> 仍不升版，作为 1.0.8 的又一处修正。
+
+### 1. 根因
+
+昨天只重编了 `bassmax_dshow.ax`，漏了共用同一份 `bassmax_dsp.cpp` 的 `bassmax_decoder.ax`：
+它停在 11-11 的旧构建，二进制里没有 `InputChannels` / `InputStamp` 上报代码，所以面板读不到
+输入信息，显示「未播放」。另外 decoder 托盘当初为躲属性页 CLSID 冲突砍掉了对话框资源，
+没有设置入口。用户拍板：不重复集成界面，直接调通用命令打开 dshow.ax 的设置窗口。
+
+### 2. 改动
+
+- `bassmax_decoder_tray.cpp`：新增 `FindDshowAx()`（CLSID 注册 > 同目录 > AxPath）与
+  `OpenSettings()`；双击走通用命令 `rundll32 "…\bassmax_dshow.ax",BassMaxConfig`；
+  悬浮提示改「左/右键 开关　双击 设置」。左右键单击仍是切总开关。
+- 重编 `bassmax_decoder.ax`（含新版 DSP 输入上报），md5 `d92952c8f5d04cc345413fe769980614`，
+  部署 `Codecs\` 与 `_publish\`。
+- 两个 .ax 读写同一份 `HKCU\Software\BassMax`，这是「decoder 不集成界面」成立的前提。
+
+### 3. 验证
+
+`MpvSettings\_verify\stage_decoder_20261127_probe.py` **10/10**：
+清空上报后用 DirectShow host 播 5.1 测试片，decoder 自动写回 `6ch / 48000Hz / 5.1`；
+dshow.ax 导出 `BassMaxConfig`、CLSID 路径存在；decoder.ax 含新字符串。
+备份在 `<项目根>\_bak_dec_20261127_0018\`。
