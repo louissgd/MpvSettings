@@ -46,7 +46,7 @@ MPC-HC 那边的路径不同：LAV Audio 先按「混缩到立体声」输出 2c
 [   0.057][i][cplayer] AO: [wasapi] 48000Hz stereo 2ch float
 ```
 
-测试片：`<测试片名>.DTS-HDMA.mka`
+测试片：`<测试片目录>\Harry Gregson-Williams - Unstoppable (End Title).DTS-HDMA.mka`
 （ffprobe：DTS / 48000 Hz / 6ch / 5.1(side)）。
 
 ---
@@ -198,7 +198,7 @@ mpv 构建日志：`_bak_108_20261126_2305/mpv_rebuild.log`。
 
 `pan=stereo|FL=FL+...` 是按 5.1(side) 写死的，换 7.1 / 2.0 就得改字符串。
 `out_chlayout` 走 swresample 的标准下混矩阵，布局无关；实测 5.1 与纯 2.0 片都能进：
-生产 mpv 播 `<测试片名>.DTS-HDMA.mka`
+生产 mpv 播 `<测试片目录>/Harry Gregson-Williams - Unstoppable (End Title).DTS-HDMA.mka`
 （5.1/48kHz）与自造 2.0 tone，`--msg-level=af=v` 都给出
 `[bassmax] drive=1.00 ... sr=48000 ch=2 groups=1`，AO 仍 stereo 2ch，无失败。
 `aresample=out_channel_layout=stereo` / `ch_layout=` / `ochl=` 在本构建的 libavfilter 12.12
@@ -209,7 +209,7 @@ mpv 构建日志：`_bak_108_20261126_2305/mpv_rebuild.log`。
 | 文件 | 改了什么 |
 |---|---|
 | `<项目根>/00.Core/setting.ahk` | 新增 `MpvAfIsDownmix` / `MpvAfSplit` / `MpvAfSetDownmix`；`MpvSyncGlobal` 的 Button7 分支在写 audio-channels 后调 `MpvAfSetDownmix(btnState)`；配置说明块补一段。版本号仍 3.2。 |
-| `<项目根>/00.Core/setting.exe` | 由上面重编（Ahk2Exe：`/base` + `/icon` + `/silent`，见 `MPV设置EXE_V1_参数与布局规划.md` §6.14）；部署到 `<安装根>/setting.exe`。 |
+| `<项目根>/00.Core/setting.exe` | 由上面重编（Ahk2Exe：`/base` + `/icon` + `/silent`，见 `MPV设置EXE_V1_参数与布局规划.md` §6.14）；部署到 `<用户目录>/MyMPC/setting.exe`。 |
 | `MpvSettings\Services\AfChain.cs` | 加 `DownmixFilter` / `ContainsDownmix` / `IsDownmix`；`Merge` 加可选 `downmix` 参数，先摘旧节再按位置插回。 |
 | `MpvSettings\Services\WritePlanBuilder.cs` | 页 C 算出写盘后真正生效的 `effectiveChannels`（被自定义态拦住时取盘上值），传给 `EnsureAfChain(plan, s, wantDownmix)`；Transform 同步。 |
 | `MpvSettings\Views\AudioView.xaml` | 「声道输出」与「链路顺序」两条描述改成新语义（选 stereo 才下混）。 |
@@ -321,3 +321,45 @@ PASS
 清空上报后用 DirectShow host 播 5.1 测试片，decoder 自动写回 `6ch / 48000Hz / 5.1`；
 dshow.ax 导出 `BassMaxConfig`、CLSID 路径存在；decoder.ax 含新字符串。
 备份在 `<项目根>\_bak_dec_20261127_0018\`。
+
+---
+
+## 十一、增补（2026-11-27）：decoder 托盘加中键开设置
+
+> 用户反馈：decoder 托盘只有双击开设置，而双击会顺带把音效关-开一次，观感不稳。
+> 要求加中键。仍不升版。
+
+### 1. 根因
+
+托盘回调里双击的消息序列是 `LBUTTONUP -> LBUTTONDBLCLK -> LBUTTONUP`。前后两个 UP 各走一次
+总开关翻转，净效果虽然抵消，但播放中能听到音效瞬间关再开、图标闪两下。中键是单条
+`WM_MBUTTONUP`，不经过开关逻辑，只开设置，所以更稳。
+
+### 2. 改动
+
+| 文件 | 改了什么 |
+|---|---|
+| `bassmax_decoder_tray.cpp` | `kTrayMsg` 增加 `WM_MBUTTONUP -> OpenSettings()`；双击分支保留；悬浮提示改「左/右键 开关　中键 设置」；交互注释改写并说明为什么主推中键。 |
+| 同上 `OpenSettings()` | 加 1 秒去重（`GetTickCount64`，不阻塞托盘线程），连点不会起两个设置宿主进程；被拦下时写 `OpenSettings: debounced (N ms)`。 |
+| `bassmax_decoder.ax` | 重编，182,784 B / md5 `ea6818071e72cc34dec519d756166881`，部署到 `Codecs` 与 `_publish`。 |
+
+### 3. 验证
+
+`MpvSettings\_verify\stage_decoder_mb_20261127_probe.py` **10/10**：起真实播放宿主，按 PID 定位
+decoder 托盘窗口，直接投递托盘回调消息。
+
+```
+[中键]     面板=1  开关不变
+[中键 x2]  面板=1           (1 秒去重生效)
+[双击]     面板=1  开关不变
+[左键]     开关 1 -> 0 并可还原
+```
+
+新提示串「中键 设置」在 ax 中命中 1 次，旧「双击 设置」为 0。
+备份在 `<项目根>/_bak_dec_mb_20261127/`。
+
+### 4. 一个探针坑（写下来免得重犯）
+
+探针最初把 `WM_LBUTTONUP` 当成 `0x0201`，实际 `0x0201` 是 `WM_LBUTTONDOWN`，
+`WM_LBUTTONUP` 是 `0x0202`。左键用例一直 FAIL，误以为是新按键分支写错，
+最后靠打印常量才定位。投递鼠标消息前先核对 DOWN/UP 常量。
