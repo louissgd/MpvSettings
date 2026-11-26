@@ -18,14 +18,33 @@ public static class AfChain
 {
     public const string Filter = "bassmax";
 
+    /// <summary>
+    /// 下混节（2026-11-26）：mpv 的 audio-channels=stereo 只改 AO 协商，不往滤镜链插下混。
+    /// 必须显式把 aresample 放在 bassmax 之前，BassMax 才拿到 2ch、驱动不降到 60%。
+    /// out_chlayout 是 swresample 的标准矩阵，5.1/7.1/2.0 都能进，不依赖具体布局。
+    /// </summary>
+    public const string DownmixFilter = "lavfi=[aresample=out_chlayout=stereo]";
+
     public static bool Contains(string chain)
         => Split(chain).Any(IsBassMax);
 
-    public static string Merge(string chain, bool enable)
+    /// <summary>是否已有下混节（认 aresample + out_chlayout/ochl，兼容旧缩写写法）。</summary>
+    public static bool ContainsDownmix(string chain)
+        => Split(chain).Any(IsDownmix);
+
+    /// <summary>
+    /// 增删 bassmax 一节，并按 downmix 参数同步下混节的位置：有下混时它紧挨 bassmax 之前。
+    /// 只动这两节，用户自己加的 scaletempo2 / lavfi=[...] 一律保留。
+    /// 生产代码只会传 enable=true（音效常驻）；false 分支仅留作解析器对称性。
+    /// </summary>
+    public static string Merge(string chain, bool enable, bool downmix = false)
     {
         var tokens = Split(chain);
-        bool has = tokens.Any(IsBassMax);
 
+        // 先统一摘掉旧下混节（含旧写法），再按需插回，保证不重复、位置正确
+        tokens.RemoveAll(IsDownmix);
+
+        bool has = tokens.Any(IsBassMax);
         if (enable)
         {
             if (!has) tokens.Add(Filter);
@@ -35,11 +54,23 @@ public static class AfChain
             tokens.RemoveAll(IsBassMax);
         }
 
+        if (downmix && enable)
+        {
+            int idx = tokens.FindIndex(IsBassMax);
+            tokens.Insert(idx < 0 ? tokens.Count : idx, DownmixFilter);
+        }
+
         return string.Join(",", tokens);
     }
 
     private static bool IsBassMax(string token)
         => token.IndexOf("bassmax", StringComparison.OrdinalIgnoreCase) >= 0;
+
+    private static bool IsDownmix(string token)
+        => token.IndexOf("aresample", StringComparison.OrdinalIgnoreCase) >= 0
+           && (token.IndexOf("out_chlayout", StringComparison.OrdinalIgnoreCase) >= 0
+               || token.IndexOf("ochl", StringComparison.OrdinalIgnoreCase) >= 0
+               || token.IndexOf("out_channel_layout", StringComparison.OrdinalIgnoreCase) >= 0);
 
     /// <summary>按逗号切分，但忽略 [] 内的逗号（lavfi=[...] 里可能有）。</summary>
     private static List<string> Split(string chain)

@@ -272,14 +272,22 @@ public static class WritePlanBuilder
 
         // ==================== 页 C · 音频 / 音效（阶段 ④） ====================
         int ch = d.AudioChannelsIndex;
+        // 2026-11-26（1.0.8）：算出写盘后实际生效的 audio-channels，af 链的下混节跟随它。
+        // 不能只看「本次有没有改这个键」——盘上已经是 stereo 时，即使这次只改截图格式，
+        // 也得保证下混节在；盘上是自定义值（Guarded 跳过写入）时则不能被下拉索引带偏。
+        string effectiveChannels = m.Get("audio-channels", "auto");
         if (baseline.Changed(d, "AudioChannelsIndex", "AudioChannelsCustom") && !Guarded(d, baseline, plan, "AudioChannelsCustom", "audio-channels"))
         {
             if (ch < 0 || ch >= SettingsDraft.ChannelsValues.Length)
                 plan.Blockers.Add("声道输出下拉索引越界，已阻止写入");
             else
-                Put(MpvLabel, mpvPath, m, "audio-channels", SettingsDraft.ChannelsValues[ch],
+            {
+                effectiveChannels = SettingsDraft.ChannelsValues[ch];
+                Put(MpvLabel, mpvPath, m, "audio-channels", effectiveChannels,
                     "AudioChannelsIndex", force: true);
+            }
         }
+        bool wantDownmix = string.Equals(effectiveChannels, "stereo", StringComparison.OrdinalIgnoreCase);
 
         // 音量上限 100%（2026-11-16 用户要求）：音效驱动 1.0 自身增益已经足够，再叠超过 100%
         // 的软件音量只会削波破音，所以出厂就压上限。
@@ -297,7 +305,9 @@ public static class WritePlanBuilder
         // 「音效开关」只改 HKCU\Software\BassMax\Enabled，绝不能把 bassmax 从滤镜链里摘掉。
         // 所以这里没有「关」的分支：每次写盘都无条件补回，--default 与导入同样会走。
         // 导出导入 / 恢复默认 / 用户手工删掉 af 行，都靠这一处兜底。
-        EnsureAfChain(plan, s);
+        // 2026-11-26（1.0.8）：声道选 stereo（2声道）时同步把下混插到 bassmax 之前；
+        // 其余声道（含自定义 5.1）一律不插，保持原始多声道进音效。
+        EnsureAfChain(plan, s, wantDownmix);
 
         // 注册表六键：改过的才写；缺失的一律补齐（DShow 侧缺任意一个会整批忽略）
         var reg = s.BassMax;
@@ -566,18 +576,20 @@ public static class WritePlanBuilder
     /// <summary>
     /// 保证 mpv.conf 的 af 链里挂着 bassmax。这是「MPV 专属音效」的落点：
     /// 滤镜常驻，开关只改注册表 Enabled，所以这里只有「补」没有「删」。
+    /// 1.0.8：downmix=true 时再把 aresample 下混插到 bassmax 之前，
+    /// 让「2声道」这个选择在滤镜链里真的生效，而不只是改 AO 协商。
     ///
     /// 不整行覆盖——af 是逗号分隔的滤镜链，用户可能挂了 scaletempo2 / lavfi=[...]，
     /// 必须走 AfChain.Merge 增删一节。Transform 让 ConfWriter 写前重读磁盘最新值再合并，
     /// 避免打开设置程序之后用户又手工改过 af 时被快照里的旧值冲掉。
     /// </summary>
-    private static void EnsureAfChain(WritePlan plan, ConfigSnapshot s)
+    private static void EnsureAfChain(WritePlan plan, ConfigSnapshot s, bool downmix)
     {
         var m = s.Mpv;
         string current = m.Get("af", "");
-        string target = AfChain.Merge(current, true);
+        string target = AfChain.Merge(current, true, downmix);
 
-        // 已含 bassmax：一个字节都不动，保证「只改截图格式」这种操作零额外写入
+        // 链已一致：一个字节都不动，保证「只改截图格式」这种操作零额外写入
         if (string.Equals(target, current, StringComparison.Ordinal)) return;
 
         plan.For(MpvLabel, s.Locator.MpvConf).Changes.Add(new KeyChange
@@ -587,7 +599,7 @@ public static class WritePlanBuilder
             Group = "音效滤镜（常驻）",
             From = m.Has("af") ? current : string.Empty,
             Append = !m.Has("af"),
-            Transform = fresh => AfChain.Merge(fresh, true),
+            Transform = fresh => AfChain.Merge(fresh, true, downmix),
         });
 
         if (!string.IsNullOrWhiteSpace(m.Get("audio-spdif", "")))

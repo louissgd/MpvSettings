@@ -67,15 +67,15 @@
 
         <controls:SettingCard Title="输出与逃生口">
             <StackPanel>
-                <controls:OptionRow Title="声道输出" Description="选择声道输出方式；音效滤镜会自行处理声道，无需额外下混">
+                <controls:OptionRow Title="声道输出" Description="选 stereo（2声道）时会自动在 BassMax 之前插入下混，让音效拿到 2ch、驱动保持 100%；其余选项保留原始多声道给音效">
                     <ComboBox Style="{StaticResource DarkComboBox}"
                               ItemsSource="{Binding AudioChannelsOptions}"
                               SelectedIndex="{Binding AudioChannelsIndex, Mode=TwoWay}"
                               IsEnabled="{Binding AudioChannelsCustom, Converter={StaticResource NotBool}}" />
                 </controls:OptionRow>
-                <controls:OptionRow Title="为什么是立体声" Description="auto / auto-safe 跟随 Windows 系统默认格式；输出端点通常锁在 2ch，5.1 音轨会被系统混音器下混成立体声。这不是配置错误，也不是音效滤镜的问题。MPC-HC / BE 和 PotPlayer 用自带渲染器绕过系统混音器，mpv 没有这个开关。"
+                <controls:OptionRow Title="选 stereo 才会真正下混给音效" Description="播放统计里的 stereo 2ch 只是 AO 输出，audio-channels 不会往滤镜链插下混。只有声道输出选 stereo（或 setting.exe 的「混缩到立体声」打开）时，才把 aresample 下混插到 af=bassmax 之前：5.1 以 2ch 进音效、驱动保持 100%。选 auto 时多声道原样进音效、驱动限 60%；打开 BassMax 面板右上角可当场看到滤镜实际收到的声道数。"
                                     IsNote="True">
-                    <TextBlock Text="系统限制" FontSize="12" Foreground="{StaticResource WeakTextBrush}" />
+                    <TextBlock Text="链路顺序" FontSize="12" Foreground="{StaticResource WeakTextBrush}" />
                 </controls:OptionRow>
                 <controls:OptionRow Title="需要原始声道时" Description="NVIDIA HDMI 驱动通常不支持独占，无法直通。真要 5.1 输出，可用支持多声道的端点配合 audio-exclusive=yes 与 audio-channels=5.1；独占期间其它程序会静音。立体声设备无需改动。"
                                     IsNote="True">
